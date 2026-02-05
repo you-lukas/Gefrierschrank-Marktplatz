@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Gefrierschrank Marktplatz Pro</title>
+  <title>Gefrierschrank Marktplatz</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
@@ -17,7 +17,7 @@
 <body class="bg-gray-950 text-gray-100 min-h-screen font-sans">
 
   <div class="max-w-md mx-auto p-4 pb-28">
-    <h1 class="text-2xl font-bold mb-6 text-center text-indigo-400">❄️ Marktplatz Pro</h1>
+    <h1 class="text-2xl font-bold mb-6 text-center text-indigo-400">❄️ Gefrierschrank Marktplatz</h1>
     
     <div id="productList" class="space-y-3">Lade Sortiment...</div>
 
@@ -65,7 +65,7 @@
         <input id="m_price" type="number" step="0.01" placeholder="Normalpreis €" class="w-full bg-gray-800 p-2 rounded-lg">
         <input id="m_stock" type="number" placeholder="Bestand" class="w-full bg-gray-800 p-2 rounded-lg">
         <div class="p-3 bg-red-950/20 border border-red-900/30 rounded-lg">
-            <label class="text-[10px] text-red-400 font-bold uppercase">Artikel-Rabatt (Roter Banner %)</label>
+            <label class="text-[10px] text-red-400 font-bold uppercase">Artikel-Rabatt (Banner %)</label>
             <input id="m_sale" type="number" placeholder="0 für keinen" class="w-full bg-gray-800 p-2 rounded-lg mt-1">
         </div>
         <button onclick="saveToFirebase()" class="w-full bg-indigo-600 p-3 rounded-xl font-bold">Speichern</button>
@@ -107,7 +107,6 @@
     const db = firebase.database();
     let products = [], cart = [], globalCodes = [], activeMultiplier = 1, editingId = null;
 
-    // REALTIME LISTENERS
     db.ref('products').on('value', s => { products = s.val() ? Object.keys(s.val()).map(k => ({id:k, ...s.val()[k]})) : []; renderProducts(); });
     db.ref('codes').on('value', s => { globalCodes = s.val() ? Object.keys(s.val()).map(k => ({id:k, ...s.val()[k]})) : []; renderCodes(); });
 
@@ -118,12 +117,12 @@
         const salePrice = p.sale > 0 ? p.price * (1 - p.sale/100) : p.price;
         list.innerHTML += `
           <div class="bg-gray-900 p-4 rounded-2xl flex justify-between items-center border border-gray-800 relative overflow-hidden">
-            ${p.sale > 0 ? `<div class="absolute top-0 left-0 bg-red-600 text-[10px] font-bold px-3 py-1 rounded-br-lg shadow-lg">-${p.sale}%</div>` : ''}
-            <div onclick="editProduct('${p.id}')" class="cursor-pointer flex-1">
+            ${p.sale > 0 ? `<div class="absolute top-0 left-0 bg-red-600 text-[9px] font-bold px-2 py-0.5 rounded-br-lg shadow-md z-10">-${p.sale}%</div>` : ''}
+            <div onclick="editProduct('${p.id}')" class="cursor-pointer flex-1 pt-2">
               <div class="font-bold text-gray-100">${p.name}</div>
               <div class="text-sm mt-1">
                 ${p.sale > 0 ? `<span class="text-red-400 font-bold">${salePrice.toFixed(2)}€</span> <span class="text-gray-600 line-through text-xs">${p.price.toFixed(2)}€</span>` : `<span class="text-indigo-400">${p.price.toFixed(2)}€</span>`}
-                <span class="text-gray-600 ml-2">• ${p.stock} auf Lager</span>
+                <span class="text-gray-600 ml-2">• ${p.stock} Stk.</span>
               </div>
             </div>
             <button onclick="addToCart('${p.id}')" class="bg-indigo-600 hover:bg-indigo-500 w-12 h-12 rounded-xl font-bold shadow-lg transition-transform active:scale-90 ${p.stock <= 0 ? 'opacity-20' : ''}" ${p.stock <= 0 ? 'disabled' : ''}>+</button>
@@ -140,7 +139,6 @@
         </div>`).join("");
     }
 
-    // WARENKORB LOGIK
     function addToCart(id) {
       const p = products.find(x => x.id === id);
       if (p.stock <= 0) return;
@@ -175,7 +173,6 @@
       cart = []; renderProducts(); renderCart();
     }
 
-    // MODAL STEUERUNG
     function triggerAdmin(type) {
       if (prompt("Admin Passwort:") !== "1234") return;
       if (type === 'product') { editingId = null; openModal('adminModal'); }
