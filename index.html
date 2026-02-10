@@ -15,7 +15,7 @@
     ::-webkit-scrollbar-thumb { background: #374151; border-radius: 10px; }
     input[type="number"]::-webkit-inner-spin-button { display: none; }
     .note-input { background: #111827; border: 1px solid #374151; font-size: 10px; padding: 2px 4px; border-radius: 4px; color: #9ca3af; width: 60px; outline: none; }
-    .note-input:focus { border-color: #6366f1; color: white; }
+    .btn-plus { width: 48px !important; height: 48px !important; min-width: 48px; min-height: 48px; }
   </style>
 </head>
 <body class="bg-gray-950 text-gray-100 min-h-screen font-sans">
@@ -72,7 +72,10 @@
         </div>
       </div>
 
-      <h3 class="font-bold text-green-500 mb-2 uppercase text-[10px] tracking-widest">Bestellungen</h3>
+      <h3 class="font-bold text-green-500 mb-2 uppercase text-[10px] tracking-widest flex justify-between">
+        <span>Offene Bestellungen</span>
+        <span id="openOrderCount" class="bg-green-900/50 px-2 rounded text-green-400">0</span>
+      </h3>
       <div id="orderManagerList" class="overflow-y-auto space-y-2 flex-1 pr-1"></div>
     </div>
   </div>
@@ -86,7 +89,7 @@
         <input id="newCodeValue" type="number" placeholder="Rabatt %" class="w-full bg-gray-800 p-2 rounded-lg text-sm outline-none">
         <button onclick="saveNewCode()" class="w-full bg-indigo-600 p-2 rounded-lg font-bold">Code erstellen</button>
       </div>
-      <button onclick="openModal('managerModal')" class="w-full mt-4 text-gray-500 text-sm">Zurück</button>
+      <button onclick="openModal('managerModal')" class="w-full mt-4 text-gray-500 text-sm font-bold uppercase">Zurück</button>
     </div>
   </div>
 
@@ -99,14 +102,14 @@
         <input id="m_stock" type="number" placeholder="Lagerbestand" class="w-full bg-gray-800 p-2 rounded-lg outline-none">
         <input id="m_sale" type="number" placeholder="Rabatt %" class="w-full bg-gray-800 p-2 rounded-lg outline-none">
         <button onclick="saveToFirebase()" class="w-full bg-indigo-600 p-3 rounded-xl font-bold">Speichern</button>
-        <button onclick="openModal('managerModal')" class="w-full mt-2 text-gray-500 text-xs">Abbrechen</button>
+        <button onclick="openModal('managerModal')" class="w-full mt-2 text-gray-500 text-xs text-center block">Abbrechen</button>
       </div>
     </div>
   </div>
 
   <div id="checkoutModal" class="fixed inset-0 bg-black/90 flex items-center justify-center p-4 modal-hidden z-50">
     <div class="bg-gray-900 border border-gray-700 p-6 rounded-2xl w-full max-w-sm">
-      <h3 class="text-xl font-bold mb-4 text-green-400">Bestellung bestätigen</h3>
+      <h3 class="text-xl font-bold mb-4 text-green-400 uppercase tracking-tighter">Bestätigung</h3>
       <div class="space-y-4">
         <div>
             <label class="text-[10px] text-gray-500 font-bold uppercase ml-1">Name (Pflicht)</label>
@@ -116,8 +119,8 @@
             <label class="text-[10px] text-gray-500 font-bold uppercase ml-1">Nachricht (Optional)</label>
             <input id="c_msg" type="text" class="w-full bg-gray-800 border border-gray-700 p-3 rounded-xl focus:border-indigo-500 outline-none" placeholder="Deine Nachricht...">
         </div>
-        <button id="finalOrderBtn" onclick="orderWhatsApp()" disabled class="w-full bg-green-600 p-4 rounded-xl font-bold opacity-30 transition-all shadow-lg">WhatsApp Bestellung</button>
-        <button onclick="closeModals()" class="w-full text-gray-500 text-sm">Abbrechen</button>
+        <button id="finalOrderBtn" onclick="orderWhatsApp()" disabled class="w-full bg-green-600 p-4 rounded-xl font-bold opacity-30 shadow-lg">WhatsApp Bestellung</button>
+        <button onclick="closeModals()" class="w-full text-gray-500 text-sm font-bold uppercase">Abbrechen</button>
       </div>
     </div>
   </div>
@@ -152,11 +155,12 @@
             <div>
               <div class="font-bold text-gray-100">${p.name}</div>
               <div class="text-sm mt-1">
-                <span class="text-indigo-400 font-bold">${salePrice.toFixed(2)}€</span>
+                <span class="${p.sale > 0 ? 'text-red-400' : 'text-indigo-400'} font-bold">${salePrice.toFixed(2)}€</span>
+                ${p.sale > 0 ? `<span class="text-gray-600 line-through text-[10px] ml-1">${p.price.toFixed(2)}€</span>` : ''}
                 <span class="text-gray-600 ml-2">• ${p.stock} Stk.</span>
               </div>
             </div>
-            <button onclick="addToCart('${p.id}')" class="bg-indigo-600 w-12 h-12 rounded-xl font-bold ${p.stock <= 0 ? 'opacity-20' : ''}" ${p.stock <= 0 ? 'disabled' : ''}>+</button>
+            <button onclick="addToCart('${p.id}')" class="bg-indigo-600 btn-plus rounded-xl font-bold flex items-center justify-center text-xl shadow-md ${p.stock <= 0 ? 'opacity-20' : ''}" ${p.stock <= 0 ? 'disabled' : ''}>+</button>
           </div>`;
       });
     }
@@ -168,18 +172,18 @@
           <td class="p-2"><input onchange="updateRow('${p.id}', 'name', this.value)" value="${p.name}" class="bg-transparent outline-none w-20"></td>
           <td class="p-2 flex items-center gap-1">
             <input type="number" onchange="updateRow('${p.id}', 'stock', this.value)" value="${p.stock}" class="bg-transparent outline-none w-8 text-indigo-400 font-bold">
-            <input placeholder="Notiz" onchange="updateRow('${p.id}', 'n_stock', this.value)" value="${p.n_stock || ''}" class="note-input">
+            <input placeholder="Note" onchange="updateRow('${p.id}', 'n_stock', this.value)" value="${p.n_stock || ''}" class="note-input">
           </td>
           <td class="p-2">
             <div class="flex items-center gap-1">
-                <input type="number" step="0.01" onchange="updateRow('${p.id}', 'price', this.value)" value="${p.price}" class="bg-transparent outline-none w-12 text-green-400">
-                <input placeholder="Notiz" onchange="updateRow('${p.id}', 'n_price', this.value)" value="${p.n_price || ''}" class="note-input">
+                <input type="number" step="0.01" onchange="updateRow('${p.id}', 'price', this.value)" value="${p.price}" class="bg-transparent outline-none w-10 text-green-400">
+                <input placeholder="Note" onchange="updateRow('${p.id}', 'n_price', this.value)" value="${p.n_price || ''}" class="note-input">
             </div>
           </td>
           <td class="p-2">
             <div class="flex items-center gap-1">
                 <input type="number" onchange="updateRow('${p.id}', 'sale', this.value)" value="${p.sale || 0}" class="bg-transparent outline-none w-8 text-red-400">
-                <input placeholder="Notiz" onchange="updateRow('${p.id}', 'n_sale', this.value)" value="${p.n_sale || ''}" class="note-input">
+                <input placeholder="Note" onchange="updateRow('${p.id}', 'n_sale', this.value)" value="${p.n_sale || ''}" class="note-input">
             </div>
           </td>
           <td class="p-2"><button onclick="deleteProduct('${p.id}')" class="text-red-500 opacity-50 hover:opacity-100">✕</button></td>
@@ -194,12 +198,16 @@
 
     function renderOrders(orders) {
       const list = document.getElementById("orderManagerList");
-      if(!orders) { list.innerHTML = "Keine Bestellungen."; return; }
-      list.innerHTML = Object.keys(orders).reverse().map(k => {
+      if(!orders) { list.innerHTML = "Keine Daten."; document.getElementById("openOrderCount").innerText = "0"; return; }
+      const keys = Object.keys(orders).reverse();
+      const openCount = keys.filter(k => !orders[k].done).length;
+      document.getElementById("openOrderCount").innerText = openCount;
+
+      list.innerHTML = keys.map(k => {
         const o = orders[k];
         return `
-          <div class="bg-gray-800 p-3 rounded-xl flex items-center gap-3 ${o.done ? 'opacity-30' : ''} border border-gray-700">
-            <input type="checkbox" ${o.done ? 'checked' : ''} onchange="toggleOrder('${k}', this.checked)" class="w-4 h-4 accent-indigo-500">
+          <div class="bg-gray-800 p-3 rounded-xl flex items-center gap-3 ${o.done ? 'opacity-30' : 'border-l-4 border-indigo-500'} border-gray-700">
+            <input type="checkbox" ${o.done ? 'checked' : ''} onchange="toggleOrder('${k}', this.checked)" class="w-5 h-5 accent-indigo-500">
             <div class="flex-1">
                 <div class="text-[9px] text-gray-500">${o.date}</div>
                 <div class="font-bold text-xs text-gray-100">${o.customer}</div>
@@ -250,7 +258,7 @@
       const total = cart.reduce((s, i) => s + (i.price * i.qty), 0) * activeMultiplier;
       for (const i of cart) { const p = products.find(x => x.id === i.id); await db.ref('products/' + i.id).update({ stock: p.stock }); }
       await db.ref('orders').push({ customer: name, time: msgUser, items: cart, total: total, date: new Date().toLocaleString(), done: false });
-      let text = `Bestellung von *${name}*:%0A` + (msgUser ? `Nachricht: _${msgUser}_%0A` : "") + cart.map(i => `- ${i.qty}x ${i.name}`).join("%0A") + `%0AGesamt: ${total.toFixed(2)} €`;
+      let text = `Bestellung von *${name}*:%0A` + (msgUser ? `Info: _${msgUser}_%0A` : "") + cart.map(i => `- ${i.qty}x ${i.name}`).join("%0A") + `%0AGesamt: ${total.toFixed(2)} €`;
       window.open(`https://wa.me/?text=${text}`, "_blank");
       cart = []; closeModals(); renderCart();
     }
