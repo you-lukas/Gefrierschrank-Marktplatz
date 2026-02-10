@@ -13,6 +13,22 @@
     .modal-visible { visibility: visible; opacity: 1; pointer-events: auto; transition: opacity 0.3s ease; }
     ::-webkit-scrollbar { width: 6px; }
     ::-webkit-scrollbar-thumb { background: #4f46e5; border-radius: 10px; }
+    input[type="number"]::-webkit-inner-spin-button { display: none; }
+    
+    /* FIX FÜR DIE NOTIZFELDER */
+    .note-input { 
+      background: #1f2937 !important; /* Dunkles Grau */
+      border: 1px solid #374151 !important; 
+      font-size: 10px !important; 
+      padding: 2px 6px !important; 
+      border-radius: 6px !important; 
+      color: #f3f4f6 !important; /* Fast weißer Text */
+      width: 80px !important; 
+      outline: none !important;
+    }
+    .note-input::placeholder { color: #6b7280; }
+    .note-input:focus { border-color: #6366f1 !important; background: #111827 !important; }
+
     .btn-plus { width: 48px !important; height: 48px !important; min-width: 48px; min-height: 48px; }
     table { border-collapse: separate; border-spacing: 0 8px; }
   </style>
@@ -121,7 +137,7 @@
         <input id="m_stock" type="number" placeholder="Bestand" class="w-full bg-gray-800 p-3 rounded-xl border border-gray-700 outline-none">
         <input id="m_sale" type="number" placeholder="Rabatt %" class="w-full bg-gray-800 p-3 rounded-xl border border-gray-700 outline-none">
         <button onclick="saveToFirebase()" class="w-full bg-indigo-600 p-4 rounded-xl font-bold">IN DB SPEICHERN</button>
-        <button onclick="openModal('managerModal')" class="w-full mt-2 text-gray-500 text-xs text-center">Abbrechen</button>
+        <button onclick="openModal('managerModal')" class="w-full mt-2 text-gray-500 text-xs text-center block">Abbrechen</button>
       </div>
     </div>
   </div>
@@ -130,8 +146,8 @@
     <div class="bg-gray-900 border border-gray-700 p-6 rounded-2xl w-full max-w-sm">
       <h3 class="text-xl font-bold mb-4 text-green-400">Bestätigen</h3>
       <div class="space-y-4">
-        <input id="c_name" type="text" oninput="checkForm()" class="w-full bg-gray-800 border border-gray-700 p-4 rounded-2xl focus:border-green-500 outline-none" placeholder="Dein Name">
-        <input id="c_msg" type="text" class="w-full bg-gray-800 border border-gray-700 p-4 rounded-2xl focus:border-indigo-500 outline-none" placeholder="Nachricht (Optional)">
+        <input id="c_name" type="text" oninput="checkForm()" class="w-full bg-gray-800 border border-gray-700 p-4 rounded-2xl focus:border-green-500 outline-none text-white" placeholder="Dein Name">
+        <input id="c_msg" type="text" class="w-full bg-gray-800 border border-gray-700 p-4 rounded-2xl focus:border-indigo-500 outline-none text-white" placeholder="Nachricht (Optional)">
         <button id="finalOrderBtn" onclick="orderWhatsApp()" disabled class="w-full bg-green-600 p-4 rounded-2xl font-bold opacity-30 shadow-lg text-lg">ZUM WHATSAPP CHAT</button>
         <button onclick="closeModals()" class="w-full text-gray-500 text-xs font-bold uppercase mt-2">Abbrechen</button>
       </div>
@@ -164,8 +180,7 @@
     });
 
     db.ref('orders').on('value', s => { 
-      const rawOrders = s.val();
-      updateOrderTable(rawOrders); 
+      updateOrderTable(s.val()); 
     });
 
     function renderProducts() {
@@ -223,47 +238,33 @@
         document.getElementById("openOrderCountText").innerText = "0";
         return; 
       }
-      
       const keys = Object.keys(orders).reverse();
       const openCount = keys.filter(k => !orders[k].done).length;
       document.getElementById("openOrderBadge").innerText = openCount;
       document.getElementById("openOrderCountText").innerText = openCount;
-
       tbody.innerHTML = keys.map(k => {
         const o = orders[k];
-        const date = o.date || "Unbekannt";
-        const customer = o.customer || "Anonym";
         const items = o.items ? o.items.map(i => `${i.qty}x ${i.name}`).join(", ") : "Fehler";
-        const msg = o.time || "-";
-        const total = o.total ? o.total.toFixed(2) + " €" : "0.00 €";
-        const done = o.done || false;
-
         return `
-          <tr class="${done ? 'opacity-20 bg-black/40' : 'bg-gray-800/40 hover:bg-gray-800 transition-colors'}">
-            <td class="p-4 text-center">
-                <input type="checkbox" ${done ? 'checked' : ''} onchange="toggleOrder('${k}', this.checked)" class="w-5 h-5 accent-green-500 cursor-pointer">
-            </td>
-            <td class="p-4 text-gray-500 whitespace-nowrap">${date}</td>
-            <td class="p-4 font-black text-gray-100">${customer}</td>
+          <tr class="${o.done ? 'opacity-20 bg-black/40' : 'bg-gray-800/40 hover:bg-gray-800'} transition-colors">
+            <td class="p-4 text-center"><input type="checkbox" ${o.done ? 'checked' : ''} onchange="toggleOrder('${k}', this.checked)" class="w-5 h-5 accent-green-500 cursor-pointer"></td>
+            <td class="p-4 text-gray-500 whitespace-nowrap">${o.date || ''}</td>
+            <td class="p-4 font-black text-gray-100">${o.customer || ''}</td>
             <td class="p-4 text-gray-300 max-w-xs truncate">${items}</td>
-            <td class="p-4 italic text-indigo-300 text-[10px]">${msg}</td>
-            <td class="p-4 font-black text-green-400">${total}</td>
-            <td class="p-4 text-right">
-                <button onclick="deleteOrder('${k}')" class="text-red-500 hover:scale-125 transition-transform">🗑️</button>
-            </td>
-          </tr>
-        `;
+            <td class="p-4 italic text-indigo-300 text-[10px]">${o.time || '-'}</td>
+            <td class="p-4 font-black text-green-400">${o.total ? o.total.toFixed(2) + ' €' : '0.00 €'}</td>
+            <td class="p-4 text-right"><button onclick="deleteOrder('${k}')" class="text-red-500 hover:scale-125 transition-transform">🗑️</button></td>
+          </tr>`;
       }).join('');
     }
 
-    // --- LOGIK ---
     function updateRow(id, field, value) {
         let val = (field === 'name' || field.startsWith('n_')) ? value : parseFloat(value);
         db.ref('products/' + id).update({ [field]: val });
     }
     function toggleOrder(id, done) { db.ref('orders/' + id).update({ done }); }
     function deleteOrder(id) { if(confirm("Löschen?")) db.ref('orders/' + id).remove(); }
-    function resetOrders() { if(confirm("ALLES LÖSCHEN? Der Counter wird auf 0 gesetzt und alle Bestelldaten werden gelöscht!")) db.ref('orders').remove(); }
+    function resetOrders() { if(confirm("ALLES LÖSCHEN?")) db.ref('orders').remove(); }
     function deleteProduct(id) { if(confirm("Produkt löschen?")) db.ref('products/' + id).remove(); }
     function triggerAdminMenu() { if (prompt("Passwort:") === "030199") openModal('managerModal'); }
     function openProductAdmin() { openModal('adminModal'); }
@@ -315,7 +316,6 @@
 
       let text = `Bestellung von *${name}*:%0A` + (msgUser ? `Info: _${msgUser}_%0A` : "") + cart.map(i => `- ${i.qty}x ${i.name}`).join("%0A") + `%0AGesamt: ${total.toFixed(2)} €`;
       window.open(`https://wa.me/?text=${text}`, "_blank");
-      
       cart = []; closeModals(); renderCart();
     }
 
