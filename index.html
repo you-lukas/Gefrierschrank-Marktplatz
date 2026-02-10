@@ -14,12 +14,12 @@
     ::-webkit-scrollbar { width: 6px; }
     ::-webkit-scrollbar-thumb { background: #4f46e5; border-radius: 10px; }
     input[type="number"]::-webkit-inner-spin-button { display: none; }
-    .note-input { background: #1f2937 !important; border: 1px solid #374151 !important; font-size: 10px !important; padding: 2px 6px !important; border-radius: 6px !important; color: #9ca3af !important; width: 70px !important; outline: none !important; }
-    .admin-val-input { background: transparent; border: none; outline: none; font-weight: bold; width: 45px; }
+    .note-input { background: #1f2937 !important; border: 1px solid #374151 !important; font-size: 9px !important; padding: 1px 4px !important; border-radius: 4px !important; color: #6b7280 !important; width: 60px !important; outline: none !important; }
+    .admin-val-input { background: transparent; border: none; outline: none; font-weight: bold; width: 45px; color: inherit; }
     .btn-plus { width: 48px !important; height: 48px !important; min-width: 48px; min-height: 48px; }
     .pack-list { font-weight: bold; line-height: 1.4; color: #e5e7eb; }
     .pack-item { display: block; border-bottom: 1px solid rgba(255,255,255,0.05); padding: 4px 0; }
-    .stock-change { font-size: 9px; color: #9ca3af; font-weight: normal; display: block; margin-top: 1px; }
+    .stock-change { font-size: 10px; color: #9ca3af; font-weight: normal; display: block; margin-top: 2px; }
   </style>
 </head>
 <body class="bg-gray-950 text-gray-100 min-h-screen font-sans">
@@ -76,7 +76,7 @@
         <div class="flex justify-between items-center mb-6 border-b border-gray-800 pb-4">
             <h2 class="text-2xl font-black text-green-500 uppercase">Packliste</h2>
             <div class="flex gap-2">
-                <button onclick="resetOrders()" class="bg-red-900/30 text-red-500 text-[10px] font-black px-4 py-2 rounded-lg border border-red-500/30 hover:bg-red-600">RESET ALL</button>
+                <button onclick="resetOrders()" class="bg-red-900/30 text-red-500 text-[10px] font-black px-4 py-2 rounded-lg border border-red-500/30">RESET ALL</button>
                 <button onclick="openModal('managerModal')" class="bg-gray-800 text-white text-[10px] font-black px-4 py-2 rounded-lg border border-gray-700">ZURÜCK</button>
             </div>
         </div>
@@ -121,8 +121,7 @@
     db.ref('products').on('value', s => { 
       const data = s.val();
       products = data ? Object.keys(data).map(k => ({id:k, ...data[k]})) : []; 
-      renderProducts(); 
-      renderInventory(); 
+      renderProducts(); renderInventory(); 
     });
 
     db.ref('codes').on('value', s => { 
@@ -134,6 +133,7 @@
 
     function renderProducts() {
       const list = document.getElementById("productList");
+      if(!list) return;
       list.innerHTML = "";
       products.forEach(p => {
         const itemInCart = cart.find(i => i.id === p.id);
@@ -188,44 +188,41 @@
       const msgUser = document.getElementById("c_msg").value.trim();
       const total = parseFloat(document.getElementById("totalPrice").textContent);
       
-      const orderItems = [];
+      const orderDataItems = [];
       for (const item of cart) {
           const p = products.find(x => x.id === item.id);
           if (p) {
               const oldStock = p.stock;
               const newStock = Math.max(0, p.stock - item.qty);
-              orderItems.push({ 
-                name: i.name, qty: i.qty, 
-                oldS: oldStock, 
-                newS: newStock === 0 ? "Ausverkauft" : newStock 
+              orderDataItems.push({ 
+                  name: item.name, 
+                  qty: item.qty, 
+                  before: oldStock, 
+                  after: newStock === 0 ? "Ausverkauft" : newStock 
               });
               await db.ref('products/' + item.id).update({ stock: newStock });
           }
       }
 
       await db.ref('orders').push({ 
-        customer: name, time: msgUser, 
-        items: cart.map(item => {
-            const p = products.find(x => x.id === item.id);
-            return { 
-                name: item.name, 
-                qty: item.qty, 
-                before: p.stock, 
-                after: (p.stock - item.qty) <= 0 ? "Ausverkauft" : (p.stock - item.qty)
-            };
-        }), 
-        total: total, date: new Date().toLocaleString('de-DE'), done: false 
+        customer: name, 
+        time: msgUser, 
+        items: orderDataItems, 
+        total: total, 
+        date: new Date().toLocaleString('de-DE'), 
+        done: false 
       });
 
       let text = `Bestellung von *${name}*:%0A` + cart.map(i => `- ${i.qty}x ${i.name}`).join("%0A") + `%0AGesamt: ${total.toFixed(2)} €`;
       window.open(`https://wa.me/?text=${text}`, "_blank");
       
-      cart = []; closeModals(); renderCart();
+      cart = []; closeModals(); renderCart(); renderProducts();
     }
 
     function updateOrderTable(orders) {
       const tbody = document.getElementById("orderTableBody");
-      if(!tbody || !orders) return;
+      if(!tbody) return;
+      if(!orders) { tbody.innerHTML = "<tr><td colspan='7' class='p-10 text-center opacity-30'>Keine Bestellungen</td></tr>"; return; }
       const keys = Object.keys(orders).reverse();
       document.getElementById("openOrderBadge").innerText = keys.filter(k => !orders[k].done).length;
       tbody.innerHTML = keys.map(k => {
@@ -233,7 +230,7 @@
         const itemsHtml = o.items ? o.items.map(i => `
           <span class="pack-item">
             📦 ${i.qty}x ${i.name}
-            <span class="stock-change">Lager: ${i.before} ➔ ${i.after}</span>
+            <span class="stock-change">Lager: ${i.before} ➔ <b class="${i.after === 'Ausverkauft' ? 'text-red-500' : 'text-green-500'}">${i.after}</b></span>
           </span>`).join("") : "";
         return `
           <tr class="${o.done ? 'opacity-20 grayscale' : 'bg-gray-800/40'} border-b border-gray-800/20">
