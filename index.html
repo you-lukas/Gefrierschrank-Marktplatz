@@ -11,30 +11,28 @@
   <style>
     .modal-hidden { visibility: hidden; opacity: 0; pointer-events: none; }
     .modal-visible { visibility: visible; opacity: 1; pointer-events: auto; transition: opacity 0.3s ease; }
-    ::-webkit-scrollbar { width: 5px; }
-    ::-webkit-scrollbar-thumb { background: #374151; border-radius: 10px; }
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-thumb { background: #4f46e5; border-radius: 10px; }
     input[type="number"]::-webkit-inner-spin-button { display: none; }
     .note-input { background: #111827; border: 1px solid #374151; font-size: 10px; padding: 2px 4px; border-radius: 4px; color: #9ca3af; width: 60px; outline: none; }
     .btn-plus { width: 48px !important; height: 48px !important; min-width: 48px; min-height: 48px; }
+    #orderManagerList { min-height: 200px; }
   </style>
 </head>
 <body class="bg-gray-950 text-gray-100 min-h-screen font-sans">
 
   <div class="max-w-md mx-auto p-4 pb-28">
     <h1 class="text-2xl font-bold mb-6 text-center text-indigo-400">❄️ Gefrierschrank Marktplatz</h1>
-    
     <div id="productList" class="space-y-3">Lade Sortiment...</div>
 
     <div class="mt-6 bg-gray-900 p-5 rounded-2xl shadow-xl border border-gray-800">
       <h2 class="text-lg font-semibold mb-3 flex justify-between">🛒 Warenkorb <button onclick="clearCart()" class="text-xs text-red-400 underline">Leeren</button></h2>
       <div id="cartItems" class="text-sm space-y-2 mb-4"></div>
-
       <div class="flex gap-2">
         <input id="discountInput" placeholder="Rabattcode" class="flex-1 p-2 rounded-lg bg-gray-800 border border-gray-700 text-sm outline-none">
         <button onclick="applyGlobalCode()" class="bg-indigo-600 px-4 rounded-lg text-sm font-bold active:scale-95 transition">OK</button>
       </div>
       <div id="activeCodeLabel" class="text-[10px] text-green-400 mt-1 h-4"></div>
-
       <div class="mt-4 pt-3 border-t border-gray-800 text-right font-bold text-xl">
         <span class="text-sm text-gray-500 font-normal">Gesamt:</span> <span id="totalPrice">0.00</span> €
       </div>
@@ -52,7 +50,6 @@
         <h2 class="text-xl font-bold text-indigo-400">Produkt-Verwaltung</h2>
         <button onclick="closeModals()" class="text-gray-500 text-xs font-bold border border-gray-800 px-4 py-2 rounded-lg">SCHLIESSEN</button>
       </div>
-
       <div class="overflow-x-auto flex-1 border border-gray-800 rounded-xl mb-6">
         <table class="w-full text-left text-xs">
           <thead class="bg-gray-800 text-gray-400 uppercase text-[10px]">
@@ -67,30 +64,30 @@
           <tbody id="inventoryTable"></tbody>
         </table>
       </div>
-      
       <div class="flex flex-wrap gap-3">
           <button onclick="openProductAdmin()" class="bg-indigo-600 text-xs font-bold px-6 py-3 rounded-xl">+ PRODUKT</button>
           <button onclick="openModal('codeModal')" class="bg-gray-800 text-xs font-bold px-6 py-3 rounded-xl">🎟️ CODES</button>
-          <button onclick="openModal('orderModal')" class="bg-green-700 text-xs font-bold px-6 py-3 rounded-xl flex items-center gap-2">
+          <button onclick="openModal('orderModal')" class="bg-green-700 text-xs font-bold px-6 py-3 rounded-xl flex items-center gap-2 relative">
              📦 BESTELLUNGEN 
-             <span id="openOrderBadge" class="bg-red-600 text-white px-2 py-0.5 rounded-full text-[10px] font-black min-w-[24px]">0</span>
+             <span id="openOrderBadge" class="bg-red-600 text-white px-2 py-0.5 rounded-full text-[12px] font-black min-w-[28px] animate-pulse">0</span>
           </button>
       </div>
     </div>
   </div>
 
-  <div id="orderModal" class="fixed inset-0 bg-black/98 modal-hidden z-[90] flex flex-col p-4">
-    <div class="max-w-2xl mx-auto w-full bg-gray-900 border border-gray-700 rounded-3xl p-6 flex flex-col max-h-[90vh]">
-        <div class="flex justify-between items-center mb-6 border-b border-gray-800 pb-4">
+  <div id="orderModal" class="fixed inset-0 bg-black/98 modal-hidden z-[90] flex flex-col p-2 sm:p-6 overflow-hidden">
+    <div class="max-w-3xl mx-auto w-full bg-gray-900 border border-gray-700 rounded-3xl p-4 sm:p-8 flex flex-col h-full max-h-[95vh] shadow-2xl">
+        <div class="flex justify-between items-start mb-6 border-b border-gray-800 pb-4">
             <div>
-                <h2 class="text-2xl font-bold text-green-500">Bestellungen</h2>
-                <p class="text-gray-500 text-xs uppercase tracking-widest mt-1">Status: <span id="openOrderCountText" class="text-red-500 font-bold">0</span> offen</p>
+                <h2 class="text-3xl font-black text-green-500 tracking-tighter">BESTELL-EINGANG</h2>
+                <p class="text-gray-500 text-[10px] uppercase tracking-[0.3em] mt-1">Status: <span id="openOrderCountText" class="text-red-500 font-bold">0</span> offene Vorgänge</p>
             </div>
-            <button onclick="openModal('managerModal')" class="text-gray-500 text-xs font-bold bg-gray-800 px-4 py-2 rounded-lg">ZURÜCK</button>
+            <button onclick="openModal('managerModal')" class="bg-gray-800 text-white text-[10px] font-black px-5 py-3 rounded-xl border border-gray-700 hover:bg-gray-700 transition-colors uppercase">Zurück zum Inventar</button>
         </div>
         
-        <div id="orderManagerList" class="overflow-y-auto space-y-3 flex-1 pr-2">
-            </div>
+        <div id="orderManagerList" class="overflow-y-auto space-y-4 flex-1 pr-2 custom-scrollbar">
+            <div class="text-center py-20 text-gray-600 animate-pulse">Lade Bestelldaten...</div>
+        </div>
     </div>
   </div>
 
@@ -99,7 +96,7 @@
       <h3 class="text-xl font-bold mb-4 text-indigo-400">Rabattcodes</h3>
       <div class="space-y-2 mb-4 max-h-40 overflow-y-auto" id="codeList"></div>
       <div class="space-y-2 border-t border-gray-800 pt-4">
-        <input id="newCodeName" placeholder="CODE NAME" class="w-full bg-gray-800 p-2 rounded-lg text-sm outline-none border border-gray-700">
+        <input id="newCodeName" placeholder="CODE NAME" class="w-full bg-gray-800 p-2 rounded-lg text-sm outline-none border border-gray-700 uppercase">
         <input id="newCodeValue" type="number" placeholder="Rabatt %" class="w-full bg-gray-800 p-2 rounded-lg text-sm outline-none border border-gray-700">
         <button onclick="saveNewCode()" class="w-full bg-indigo-600 p-2 rounded-lg font-bold">SPEICHERN</button>
       </div>
@@ -115,8 +112,8 @@
         <input id="m_price" type="number" step="0.01" placeholder="Preis €" class="w-full bg-gray-800 p-3 rounded-xl border border-gray-700 outline-none">
         <input id="m_stock" type="number" placeholder="Bestand" class="w-full bg-gray-800 p-3 rounded-xl border border-gray-700 outline-none">
         <input id="m_sale" type="number" placeholder="Rabatt %" class="w-full bg-gray-800 p-3 rounded-xl border border-gray-700 outline-none">
-        <button onclick="saveToFirebase()" class="w-full bg-indigo-600 p-4 rounded-xl font-bold">IM SYSTEM SPEICHERN</button>
-        <button onclick="openModal('managerModal')" class="w-full mt-2 text-gray-500 text-xs">Abbrechen</button>
+        <button onclick="saveToFirebase()" class="w-full bg-indigo-600 p-4 rounded-xl font-bold">SPEICHERN</button>
+        <button onclick="openModal('managerModal')" class="w-full mt-2 text-gray-500 text-xs block text-center">Abbrechen</button>
       </div>
     </div>
   </div>
@@ -158,6 +155,7 @@
       renderCodes(); 
     });
 
+    // WICHTIG: Live-Listener für Bestellungen
     db.ref('orders').on('value', s => { 
       updateOrderList(s.val()); 
     });
@@ -212,7 +210,7 @@
     function updateOrderList(orders) {
       const list = document.getElementById("orderManagerList");
       if(!orders) { 
-        list.innerHTML = "<div class='text-gray-600 p-10 text-center font-bold uppercase text-xs'>Warte auf Bestellungen...</div>";
+        list.innerHTML = "<div class='text-gray-600 p-10 text-center font-bold uppercase text-xs'>Keine Bestellungen vorhanden.</div>";
         document.getElementById("openOrderBadge").innerText = "0";
         document.getElementById("openOrderCountText").innerText = "0";
         return; 
@@ -226,31 +224,34 @@
 
       list.innerHTML = keys.map(k => {
         const o = orders[k];
+        const itemText = o.items ? o.items.map(i => `<span class="bg-gray-700 px-2 py-0.5 rounded mr-1 mb-1 inline-block">${i.qty}x ${i.name}</span>`).join(" ") : "Keine Details";
+        
         return `
-          <div class="bg-gray-800 p-4 rounded-2xl flex items-center gap-4 ${o.done ? 'opacity-20 scale-[0.98]' : 'border-l-4 border-green-500 shadow-lg'} transition-all duration-300">
-            <input type="checkbox" ${o.done ? 'checked' : ''} onchange="toggleOrder('${k}', this.checked)" class="w-7 h-7 accent-green-500 cursor-pointer">
+          <div class="bg-gray-800/50 p-5 rounded-3xl flex items-start gap-4 ${o.done ? 'opacity-20 grayscale border-transparent' : 'border border-gray-700 shadow-[0_10px_30px_rgba(0,0,0,0.5)] bg-gray-800'} transition-all duration-300">
+            <input type="checkbox" ${o.done ? 'checked' : ''} onchange="toggleOrder('${k}', this.checked)" class="w-8 h-8 accent-green-500 cursor-pointer mt-1 flex-shrink-0">
             <div class="flex-1">
-                <div class="text-[10px] text-gray-500 font-black mb-1">${o.date}</div>
-                <div class="font-bold text-gray-100 text-base">${o.customer}</div>
-                ${o.time ? `<div class="text-[11px] text-indigo-300 italic mb-1">"${o.time}"</div>` : ''}
-                <div class="text-[11px] text-gray-400 font-medium">${o.items.map(i => i.qty + 'x ' + i.name).join(", ")}</div>
+                <div class="text-[10px] text-gray-500 font-black mb-1 flex items-center gap-2 uppercase tracking-widest">
+                   🗓️ ${o.date}
+                </div>
+                <div class="font-black text-gray-100 text-xl mb-2">${o.customer}</div>
+                ${o.time ? `<div class="text-indigo-300 italic mb-3 bg-indigo-900/20 p-2 rounded-xl border border-indigo-900/30 text-xs">"${o.time}"</div>` : ''}
+                <div class="text-[11px] text-gray-300 flex flex-wrap">${itemText}</div>
             </div>
-            <div class="text-right">
-                <div class="font-black text-green-400 text-lg">${o.total.toFixed(2)}€</div>
-                <button onclick="deleteOrder('${k}')" class="text-gray-600 hover:text-red-500 mt-2 text-xs uppercase font-bold">Löschen</button>
+            <div class="text-right flex flex-col justify-between items-end h-full min-w-[80px]">
+                <div class="font-black text-green-400 text-2xl">${o.total ? o.total.toFixed(2) : "0.00"}€</div>
+                <button onclick="deleteOrder('${k}')" class="text-gray-700 hover:text-red-500 mt-4 text-[10px] font-black uppercase tracking-tighter border border-gray-800 px-2 py-1 rounded">Löschen</button>
             </div>
           </div>
         `;
       }).join('');
     }
 
-    // --- LOGIK FUNKTIONEN ---
     function updateRow(id, field, value) {
         let val = (field === 'name' || field.startsWith('n_')) ? value : parseFloat(value);
         db.ref('products/' + id).update({ [field]: val });
     }
     function toggleOrder(id, done) { db.ref('orders/' + id).update({ done }); }
-    function deleteOrder(id) { if(confirm("Bestellung permanent entfernen?")) db.ref('orders/' + id).remove(); }
+    function deleteOrder(id) { if(confirm("Permanent löschen?")) db.ref('orders/' + id).remove(); }
     function deleteProduct(id) { if(confirm("Produkt löschen?")) db.ref('products/' + id).remove(); }
     function triggerAdminMenu() { if (prompt("Passwort:") === "030199") openModal('managerModal'); }
     function openProductAdmin() { openModal('adminModal'); }
