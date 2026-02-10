@@ -4,91 +4,122 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Gefrierschrank Marktplatz</title>
+  <link rel="icon" href="https://fav.farm/❄️" />
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
   <style>
-    .modal-hidden { visibility: hidden; opacity: 0; pointer-events: none; }
-    .modal-visible { visibility: visible; opacity: 1; pointer-events: auto; transition: opacity 0.3s ease; }
+    .modal-hidden { visibility: hidden; opacity: 0; pointer-events: none; transform: scale(0.95); }
+    .modal-visible { visibility: visible; opacity: 1; pointer-events: auto; transform: scale(1); transition: all 0.2s ease; }
     ::-webkit-scrollbar { width: 5px; }
     ::-webkit-scrollbar-thumb { background: #374151; border-radius: 10px; }
   </style>
 </head>
 <body class="bg-gray-950 text-gray-100 min-h-screen font-sans">
 
-  <div class="max-w-md mx-auto p-4 pb-28">
+  <div class="max-w-md mx-auto p-4 pb-32">
     <h1 class="text-2xl font-bold mb-6 text-center text-indigo-400">❄️ Gefrierschrank Marktplatz</h1>
     
-    <div id="productList" class="space-y-3">Lade Sortiment...</div>
+    <div id="categoryFilter" class="flex gap-2 overflow-x-auto pb-4 mb-2 no-scrollbar"></div>
 
-    <div class="mt-6 bg-gray-900 p-5 rounded-2xl shadow-xl border border-gray-800">
+    <div id="productList" class="space-y-4">Lade Sortiment...</div>
+
+    <div class="mt-8 bg-gray-900 p-5 rounded-2xl shadow-xl border border-gray-800">
       <h2 class="text-lg font-semibold mb-3 flex justify-between">🛒 Warenkorb <button onclick="clearCart()" class="text-xs text-red-400 underline">Leeren</button></h2>
-      <div id="cartItems" class="text-sm space-y-2 mb-4"></div>
-
+      <div id="cartItems" class="text-sm space-y-2 mb-4 italic text-gray-500">Dein Warenkorb ist noch leer...</div>
+      
       <div class="flex gap-2">
         <input id="discountInput" placeholder="Rabattcode" class="flex-1 p-2 rounded-lg bg-gray-800 border border-gray-700 text-sm">
         <button onclick="applyGlobalCode()" class="bg-indigo-600 px-4 rounded-lg text-sm font-bold">OK</button>
       </div>
       <div id="activeCodeLabel" class="text-[10px] text-green-400 mt-1 h-4"></div>
 
-      <div class="mt-4 pt-3 border-t border-gray-800 text-right font-bold text-xl">
-        <span class="text-sm text-gray-500 font-normal">Gesamt:</span> <span id="totalPrice">0.00</span> €
+      <div class="mt-4 pt-3 border-t border-gray-800 text-right font-bold text-xl text-indigo-400">
+        <span id="totalPrice">0.00</span> €
       </div>
-      <button onclick="openCheckout()" class="mt-4 w-full bg-green-600 hover:bg-green-500 p-3 rounded-xl font-bold shadow-lg transition-all">📲 Jetzt Bestellen</button>
+      <button onclick="openCheckout()" class="mt-4 w-full bg-green-600 hover:bg-green-500 p-4 rounded-xl font-bold shadow-lg transition-all active:scale-95">📲 Zur Kasse</button>
     </div>
 
-    <div class="mt-10 grid grid-cols-3 gap-2">
-      <button onclick="triggerAdmin('product')" class="text-[10px] bg-gray-900 p-2 rounded-lg border border-gray-800 text-gray-400">➕ Produkte</button>
-      <button onclick="triggerAdmin('codes')" class="text-[10px] bg-gray-900 p-2 rounded-lg border border-gray-800 text-gray-400">🎟️ Codes</button>
-      <button onclick="triggerAdmin('history')" class="text-[10px] bg-gray-900 p-2 rounded-lg border border-gray-800 text-gray-400">📜 Historie</button>
-    </div>
+    <button onclick="triggerAdminAuth()" class="mt-20 w-full text-[10px] text-gray-800 hover:text-gray-600 transition">Admin Bereich</button>
   </div>
 
-  <div id="codeModal" class="fixed inset-0 bg-black/90 flex items-center justify-center p-4 modal-hidden z-50">
-    <div class="bg-gray-900 border border-gray-700 p-6 rounded-2xl w-full max-w-sm">
-      <h3 class="text-xl font-bold mb-4 text-indigo-400">Rabattcodes</h3>
-      <div class="space-y-2 mb-4 max-h-40 overflow-y-auto" id="codeList"></div>
-      <div class="space-y-2 border-t border-gray-800 pt-4">
-        <input id="newCodeName" placeholder="Code (z.B. DEAL20)" class="w-full bg-gray-800 p-2 rounded-lg text-sm">
-        <input id="newCodeValue" type="number" placeholder="Rabatt in %" class="w-full bg-gray-800 p-2 rounded-lg text-sm">
-        <button onclick="saveNewCode()" class="w-full bg-indigo-600 p-2 rounded-lg font-bold">Code erstellen</button>
+  <div id="detailModal" class="fixed inset-0 bg-black/90 flex items-center justify-center p-4 modal-hidden z-50">
+    <div class="bg-gray-900 border border-gray-700 p-6 rounded-3xl w-full max-w-sm">
+      <div id="detailContent"></div>
+      <div class="mt-6 flex gap-3">
+        <input id="detailQty" type="number" value="1" min="1" class="w-20 bg-gray-800 border border-gray-700 p-3 rounded-xl text-center font-bold">
+        <button onclick="addToCartFromDetail()" class="flex-1 bg-indigo-600 p-3 rounded-xl font-bold">In den Warenkorb</button>
       </div>
       <button onclick="closeModals()" class="w-full mt-4 text-gray-500 text-sm">Schließen</button>
     </div>
   </div>
 
-  <div id="adminModal" class="fixed inset-0 bg-black/90 flex items-center justify-center p-4 modal-hidden z-50">
-    <div class="bg-gray-900 border border-gray-700 p-6 rounded-2xl w-full max-w-sm">
-      <h3 class="text-xl font-bold mb-4 text-indigo-400">Produkt-Details</h3>
+  <div id="adminTerminal" class="fixed inset-0 bg-gray-950 flex flex-col p-4 modal-hidden z-[60] overflow-y-auto">
+    <div class="max-w-md mx-auto w-full">
+      <div class="flex justify-between items-center mb-6">
+        <h2 class="text-2xl font-bold text-red-500 underline">Admin Terminal</h2>
+        <button onclick="closeModals()" class="text-2xl">✕</button>
+      </div>
+      
+      <div class="grid grid-cols-2 gap-3 mb-8">
+        <button onclick="showProductEditor()" class="bg-gray-900 p-4 rounded-xl border border-gray-700 text-sm font-bold">➕ Neues Produkt</button>
+        <button onclick="openModal('codeModal')" class="bg-gray-900 p-4 rounded-xl border border-gray-700 text-sm font-bold">🎟️ Rabattcodes</button>
+        <button onclick="showHistory()" class="bg-gray-900 p-4 rounded-xl border border-gray-700 text-sm font-bold">📜 Bestellungen</button>
+        <button onclick="alert('Lager-Modul kommt bald!')" class="bg-gray-900 p-4 rounded-xl border border-gray-700 text-sm font-bold">📦 Lager-Planung</button>
+      </div>
+
+      <div class="text-xs uppercase text-gray-500 mb-2 font-bold">Schnell-Bearbeitung</div>
+      <div id="adminProductList" class="space-y-2"></div>
+    </div>
+  </div>
+
+  <div id="adminModal" class="fixed inset-0 bg-black/95 flex items-center justify-center p-4 modal-hidden z-[70]">
+    <div class="bg-gray-900 border border-gray-700 p-6 rounded-2xl w-full max-w-sm max-h-[90vh] overflow-y-auto">
+      <h3 class="text-xl font-bold mb-4 text-indigo-400">Produkt bearbeiten</h3>
       <div class="space-y-3">
-        <input id="m_name" placeholder="Name" class="w-full bg-gray-800 p-2 rounded-lg">
-        <input id="m_price" type="number" step="0.01" placeholder="Normalpreis €" class="w-full bg-gray-800 p-2 rounded-lg">
-        <input id="m_stock" type="number" placeholder="Bestand" class="w-full bg-gray-800 p-2 rounded-lg">
-        <div class="p-3 bg-red-950/20 border border-red-900/30 rounded-lg">
-            <label class="text-[10px] text-red-400 font-bold uppercase">Artikel-Rabatt (Banner %)</label>
-            <input id="m_sale" type="number" placeholder="0 für keinen" class="w-full bg-gray-800 p-2 rounded-lg mt-1">
+        <input id="m_name" placeholder="Name" class="w-full bg-gray-800 p-3 rounded-xl">
+        <input id="m_cat" placeholder="Kategorie (z.B. Fleisch)" class="w-full bg-gray-800 p-3 rounded-xl">
+        <div class="flex gap-2">
+          <input id="m_price" type="number" step="0.01" placeholder="Preis €" class="w-1/2 bg-gray-800 p-3 rounded-xl">
+          <input id="m_stock" type="number" placeholder="Lager" class="w-1/2 bg-gray-800 p-3 rounded-xl">
         </div>
-        <button onclick="saveToFirebase()" class="w-full bg-indigo-600 p-3 rounded-xl font-bold">Speichern</button>
-        <button id="deleteBtn" onclick="deleteFromFirebase()" class="w-full bg-red-900/50 text-red-400 p-2 rounded-xl text-sm hidden">Produkt löschen</button>
-        <button onclick="closeModals()" class="w-full mt-2 text-gray-500 text-sm">Abbrechen</button>
+        <input id="m_sale" type="number" placeholder="Rabatt % (optional)" class="w-full bg-gray-800 p-3 rounded-xl">
+        <textarea id="m_desc" placeholder="Zusatzstoffe / Inhalt" class="w-full bg-gray-800 p-3 rounded-xl h-20 text-sm"></textarea>
+        <textarea id="m_prep" placeholder="Zubereitung" class="w-full bg-gray-800 p-3 rounded-xl h-20 text-sm"></textarea>
+        
+        <button onclick="saveToFirebase()" class="w-full bg-green-600 p-3 rounded-xl font-bold">Speichern</button>
+        <button id="deleteBtn" onclick="deleteFromFirebase()" class="w-full bg-red-900/50 text-red-400 p-2 rounded-xl text-sm hidden">Löschen</button>
+        <button onclick="document.getElementById('adminModal').classList.replace('modal-visible','modal-hidden')" class="w-full text-gray-500 text-sm">Abbrechen</button>
       </div>
     </div>
   </div>
 
-  <div id="historyModal" class="fixed inset-0 bg-black/95 flex items-center justify-center p-4 modal-hidden z-50">
-    <div class="bg-gray-900 border border-gray-700 p-6 rounded-2xl w-full max-w-sm max-h-[80vh] flex flex-col">
-      <h3 class="text-xl font-bold mb-4 text-green-400">Bestellhistorie</h3>
-      <div id="historyContent" class="space-y-3 overflow-y-auto flex-1 pr-2"></div>
-      <button onclick="closeModals()" class="w-full mt-4 bg-gray-800 p-2 rounded-lg">Schließen</button>
+  <div id="checkoutModal" class="fixed inset-0 bg-black/90 flex items-center justify-center p-4 modal-hidden z-[80]">
+    <div class="bg-gray-900 border border-gray-700 p-6 rounded-2xl w-full max-w-sm">
+      <h3 class="text-xl font-bold mb-4 text-green-400">Bestellung abschicken</h3>
+      <input id="c_name" type="text" oninput="checkForm()" class="w-full bg-gray-800 p-3 rounded-xl mb-3" placeholder="Dein Name">
+      <input id="c_time" type="text" oninput="checkForm()" class="w-full bg-gray-800 p-3 rounded-xl mb-4" placeholder="Abholzeit (z.B. 18 Uhr)">
+      <button id="finalOrderBtn" onclick="orderWhatsApp()" disabled class="w-full bg-green-600 p-4 rounded-xl font-bold opacity-30 transition-all">An WhatsApp senden</button>
+      <button onclick="closeModals()" class="w-full mt-4 text-gray-500 text-sm">Abbrechen</button>
     </div>
   </div>
 
-  <div id="checkoutModal" class="fixed inset-0 bg-black/90 flex items-center justify-center p-4 modal-hidden z-50">
-    <div class="bg-gray-900 border border-gray-700 p-6 rounded-2xl w-full max-w-sm">
-      <h3 class="text-xl font-bold mb-4 text-green-400">Bestellung abschicken</h3>
-      <input id="c_name" type="text" oninput="checkForm()" class="w-full bg-gray-800 border border-gray-700 p-3 rounded-xl mb-4" placeholder="Dein Name">
-      <button id="finalOrderBtn" onclick="orderWhatsApp()" disabled class="w-full bg-green-600 p-4 rounded-xl font-bold opacity-30 transition-all">An WhatsApp senden</button>
-      <button onclick="closeModals()" class="w-full mt-4 text-gray-500 text-sm">Abbrechen</button>
+  <div id="codeModal" class="fixed inset-0 bg-black/95 flex items-center justify-center p-4 modal-hidden z-[70]">
+    <div class="bg-gray-900 border border-gray-700 p-6 rounded-2xl w-full max-w-sm text-center">
+      <h3 class="text-xl font-bold mb-4">Codes</h3>
+      <div id="codeList" class="mb-4 space-y-2"></div>
+      <input id="newCodeName" placeholder="Code" class="w-full bg-gray-800 p-2 rounded mb-2">
+      <input id="newCodeValue" type="number" placeholder="%" class="w-full bg-gray-800 p-2 rounded mb-2">
+      <button onclick="saveNewCode()" class="bg-indigo-600 w-full p-2 rounded font-bold">Erstellen</button>
+      <button onclick="document.getElementById('codeModal').classList.replace('modal-visible','modal-hidden')" class="mt-4 text-gray-400 underline">Zurück</button>
+    </div>
+  </div>
+
+  <div id="historyModal" class="fixed inset-0 bg-black/95 flex items-center justify-center p-4 modal-hidden z-[70]">
+    <div class="bg-gray-900 border border-gray-700 p-6 rounded-2xl w-full max-w-sm max-h-[80vh] overflow-y-auto">
+      <h3 class="text-xl font-bold mb-4">Bestellungen</h3>
+      <div id="historyContent" class="space-y-4"></div>
+      <button onclick="document.getElementById('historyModal').classList.replace('modal-visible','modal-hidden')" class="mt-4 w-full bg-gray-800 p-2 rounded">Schließen</button>
     </div>
   </div>
 
@@ -105,143 +136,200 @@
 
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
-    let products = [], cart = [], globalCodes = [], activeMultiplier = 1, editingId = null;
+    let products = [], cart = [], globalCodes = [], activeMultiplier = 1, editingId = null, currentDetailId = null;
 
-    db.ref('products').on('value', s => { products = s.val() ? Object.keys(s.val()).map(k => ({id:k, ...s.val()[k]})) : []; renderProducts(); });
+    // REALTIME LOAD
+    db.ref('products').on('value', s => { 
+        products = s.val() ? Object.keys(s.val()).map(k => ({id:k, ...s.val()[k]})) : []; 
+        renderProducts(); 
+        renderAdminProducts();
+    });
     db.ref('codes').on('value', s => { globalCodes = s.val() ? Object.keys(s.val()).map(k => ({id:k, ...s.val()[k]})) : []; renderCodes(); });
 
     function renderProducts() {
       const list = document.getElementById("productList");
-      list.innerHTML = products.length ? "" : "<div class='text-center text-gray-600 py-10'>Keine Produkte online.</div>";
+      const filter = document.getElementById("categoryFilter");
+      const cats = [...new Set(products.map(p => p.category || "Allgemein"))];
+      
+      filter.innerHTML = `<button onclick="filterCat('all')" class="bg-indigo-900/50 px-4 py-1 rounded-full text-xs font-bold border border-indigo-700">Alle</button>`;
+      cats.forEach(c => filter.innerHTML += `<button onclick="filterCat('${c}')" class="bg-gray-900 px-4 py-1 rounded-full text-xs border border-gray-700">${c}</button>`);
+
+      list.innerHTML = "";
       products.forEach(p => {
         const salePrice = p.sale > 0 ? p.price * (1 - p.sale/100) : p.price;
         list.innerHTML += `
-          <div class="bg-gray-900 p-4 rounded-2xl flex justify-between items-center border border-gray-800 relative overflow-hidden">
-            ${p.sale > 0 ? `<div class="absolute top-0 left-0 bg-red-600 text-[9px] font-bold px-2 py-0.5 rounded-br-lg shadow-md z-10">-${p.sale}%</div>` : ''}
-            <div onclick="editProduct('${p.id}')" class="cursor-pointer flex-1 pt-2">
+          <div class="bg-gray-900 p-4 rounded-2xl flex justify-between items-center border border-gray-800 relative overflow-hidden active:bg-gray-800 transition shadow-lg">
+            ${p.sale > 0 ? `<div class="absolute top-0 left-0 bg-red-600 text-[8px] font-bold px-2 py-0.5 rounded-br-lg z-10">-${p.sale}%</div>` : ''}
+            <div onclick="showDetails('${p.id}')" class="flex-1 cursor-pointer">
               <div class="font-bold text-gray-100">${p.name}</div>
-              <div class="text-sm mt-1">
-                ${p.sale > 0 ? `<span class="text-red-400 font-bold">${salePrice.toFixed(2)}€</span> <span class="text-gray-600 line-through text-xs">${p.price.toFixed(2)}€</span>` : `<span class="text-indigo-400">${p.price.toFixed(2)}€</span>`}
-                <span class="text-gray-600 ml-2">• ${p.stock} Stk.</span>
+              <div class="text-xs text-gray-500 italic mb-1">${p.category || 'Allgemein'}</div>
+              <div class="text-sm">
+                ${p.sale > 0 ? `<span class="text-red-400 font-bold">${salePrice.toFixed(2)}€</span> <span class="text-gray-600 line-through text-[10px] ml-1">${p.price.toFixed(2)}€</span>` : `<span class="text-indigo-400 font-bold">${p.price.toFixed(2)}€</span>`}
+                <span class="text-gray-600 ml-2 text-xs">• ${p.stock} auf Lager</span>
               </div>
             </div>
-            <button onclick="addToCart('${p.id}')" class="bg-indigo-600 hover:bg-indigo-500 w-12 h-12 rounded-xl font-bold shadow-lg transition-transform active:scale-90 ${p.stock <= 0 ? 'opacity-20' : ''}" ${p.stock <= 0 ? 'disabled' : ''}>+</button>
+            <button onclick="addToCartDirect('${p.id}')" class="bg-indigo-600 w-12 h-12 rounded-xl font-bold shadow-lg transition-transform active:scale-90 ${p.stock <= 0 ? 'opacity-20' : ''}" ${p.stock <= 0 ? 'disabled' : ''}>+</button>
           </div>`;
       });
     }
 
-    function renderCodes() {
-      const list = document.getElementById("codeList");
-      list.innerHTML = globalCodes.map(c => `
-        <div class="flex justify-between items-center bg-gray-800 p-2 rounded-lg text-sm mb-1">
-          <span><b>${c.code}</b> (-${c.value}%)</span>
-          <button onclick="deleteCode('${c.id}')" class="text-red-500 font-bold px-2">X</button>
-        </div>`).join("");
+    function showDetails(id) {
+        currentDetailId = id;
+        const p = products.find(x => x.id === id);
+        const salePrice = p.sale > 0 ? p.price * (1 - p.sale/100) : p.price;
+        document.getElementById("detailContent").innerHTML = `
+            <h2 class="text-2xl font-bold text-indigo-400 mb-1">${p.name}</h2>
+            <div class="text-xl font-bold mb-4">${salePrice.toFixed(2)} €</div>
+            <div class="space-y-4">
+                <div>
+                    <h4 class="text-[10px] text-gray-500 font-bold uppercase">Inhalt / Zusatzstoffe</h4>
+                    <p class="text-sm text-gray-300">${p.desc || 'Keine Angabe'}</p>
+                </div>
+                <div>
+                    <h4 class="text-[10px] text-gray-500 font-bold uppercase">Zubereitung</h4>
+                    <p class="text-sm text-gray-300">${p.prep || 'Keine Angabe'}</p>
+                </div>
+            </div>
+        `;
+        document.getElementById("detailQty").value = 1;
+        openModal('detailModal');
     }
 
-    function addToCart(id) {
+    function addToCartFromDetail() {
+        const qty = parseInt(document.getElementById("detailQty").value);
+        const p = products.find(x => x.id === currentDetailId);
+        if (p.stock < qty) return alert("Nicht genug auf Lager!");
+        for(let i=0; i<qty; i++) addToCartDirect(currentDetailId, false);
+        closeModals();
+        renderCart();
+    }
+
+    function addToCartDirect(id, shouldRender = true) {
       const p = products.find(x => x.id === id);
       if (p.stock <= 0) return;
       p.stock--;
       const price = p.sale > 0 ? p.price * (1 - p.sale/100) : p.price;
       const item = cart.find(i => i.id === id);
       if (item) item.qty++; else cart.push({ id, name: p.name, price, qty: 1 });
-      renderProducts(); renderCart();
+      if(shouldRender) { renderProducts(); renderCart(); }
     }
 
     function renderCart() {
+      const cartDiv = document.getElementById("cartItems");
+      if(cart.length === 0) { cartDiv.innerHTML = "Warenkorb leer"; document.getElementById("totalPrice").textContent = "0.00"; return; }
       const total = cart.reduce((s, i) => s + (i.price * i.qty), 0) * activeMultiplier;
-      document.getElementById("cartItems").innerHTML = cart.map(i => `<div class="flex justify-between"><span>${i.qty}x ${i.name}</span><span>${(i.price * i.qty).toFixed(2)} €</span></div>`).join("") || "Warenkorb ist leer";
+      cartDiv.innerHTML = cart.map(i => `<div class="flex justify-between"><span>${i.qty}x ${i.name}</span><span>${(i.price * i.qty).toFixed(2)} €</span></div>`).join("");
       document.getElementById("totalPrice").textContent = total.toFixed(2);
     }
 
-    function applyGlobalCode() {
-      const val = document.getElementById("discountInput").value.trim().toUpperCase();
-      const codeObj = globalCodes.find(c => c.code === val);
-      if (codeObj) {
-        activeMultiplier = (1 - codeObj.value / 100);
-        document.getElementById("activeCodeLabel").textContent = `Code "${val}" aktiv (-${codeObj.value}%)`;
-      } else {
-        activeMultiplier = 1;
-        document.getElementById("activeCodeLabel").textContent = "Ungültiger Code";
-      }
-      renderCart();
+    // ADMIN FUNKTIONEN
+    function triggerAdminAuth() {
+        if(prompt("Passwort für Terminal:") === "030199") openModal('adminTerminal');
     }
 
-    function clearCart() {
-      cart.forEach(i => { const p = products.find(x => x.id === i.id); if(p) p.stock += i.qty; });
-      cart = []; renderProducts(); renderCart();
+    function renderAdminProducts() {
+        const list = document.getElementById("adminProductList");
+        list.innerHTML = products.map(p => `
+            <div onclick="editProduct('${p.id}')" class="bg-gray-900 p-2 rounded-lg border border-gray-800 flex justify-between text-xs cursor-pointer">
+                <span>${p.name}</span>
+                <span class="font-bold text-indigo-400">Lager: ${p.stock}</span>
+            </div>
+        `).join("");
     }
 
-    function triggerAdmin(type) {
-      if (prompt("Admin Passwort:") !== "1234") return;
-      if (type === 'product') { editingId = null; openModal('adminModal'); }
-      if (type === 'codes') openModal('codeModal');
-      if (type === 'history') showHistory();
-    }
+    function showProductEditor() { editingId = null; document.querySelectorAll("#adminModal input, #adminModal textarea").forEach(i => i.value=""); openModal('adminModal'); }
 
-    function editProduct(id) { if (prompt("Passwort:") === "1234") { editingId = id; const p = products.find(x => x.id === id); 
-      document.getElementById("m_name").value = p.name; document.getElementById("m_price").value = p.price;
-      document.getElementById("m_stock").value = p.stock; document.getElementById("m_sale").value = p.sale || 0;
-      document.getElementById("deleteBtn").classList.remove("hidden"); openModal('adminModal'); } 
+    function editProduct(id) {
+        editingId = id;
+        const p = products.find(x => x.id === id);
+        document.getElementById("m_name").value = p.name;
+        document.getElementById("m_cat").value = p.category || "";
+        document.getElementById("m_price").value = p.price;
+        document.getElementById("m_stock").value = p.stock;
+        document.getElementById("m_sale").value = p.sale || 0;
+        document.getElementById("m_desc").value = p.desc || "";
+        document.getElementById("m_prep").value = p.prep || "";
+        document.getElementById("deleteBtn").classList.remove("hidden");
+        openModal('adminModal');
     }
 
     async function saveToFirebase() {
-      const data = { 
-        name: document.getElementById("m_name").value, 
-        price: parseFloat(document.getElementById("m_price").value), 
-        stock: parseInt(document.getElementById("m_stock").value),
-        sale: parseInt(document.getElementById("m_sale").value) || 0 
-      };
-      if (editingId) await db.ref('products/' + editingId).update(data); else await db.ref('products').push(data);
-      closeModals();
-    }
-
-    async function saveNewCode() {
-      const code = document.getElementById("newCodeName").value.trim().toUpperCase();
-      const value = parseInt(document.getElementById("newCodeValue").value);
-      if (code && value) { await db.ref('codes').push({ code, value }); document.getElementById("newCodeName").value = ""; document.getElementById("newCodeValue").value = ""; }
-    }
-
-    function deleteCode(id) { db.ref('codes/' + id).remove(); }
-    function deleteFromFirebase() { if(confirm("Löschen?")) { db.ref('products/' + editingId).remove(); closeModals(); } }
-
-    async function showHistory() {
-      const s = await db.ref('orders').limitToLast(20).once('value');
-      const orders = s.val();
-      const content = document.getElementById("historyContent");
-      content.innerHTML = orders ? "" : "Keine Bestellungen.";
-      if (orders) {
-        Object.keys(orders).reverse().forEach(k => {
-          const o = orders[k];
-          content.innerHTML += `<div class="bg-gray-800 p-3 rounded-xl border-l-4 border-indigo-500">
-            <div class="text-[10px] text-gray-500">${o.date}</div>
-            <div class="font-bold text-sm">${o.customer}</div>
-            <div class="text-xs text-gray-400">${o.items.map(i => i.name).join(", ")}</div>
-            <div class="text-right text-green-400 font-bold">${o.total.toFixed(2)}€</div>
-          </div>`;
-        });
-      }
-      openModal('historyModal');
+        const data = {
+            name: document.getElementById("m_name").value,
+            category: document.getElementById("m_cat").value,
+            price: parseFloat(document.getElementById("m_price").value),
+            stock: parseInt(document.getElementById("m_stock").value),
+            sale: parseInt(document.getElementById("m_sale").value) || 0,
+            desc: document.getElementById("m_desc").value,
+            prep: document.getElementById("m_prep").value
+        };
+        if(editingId) await db.ref('products/' + editingId).update(data);
+        else await db.ref('products').push(data);
+        document.getElementById('adminModal').classList.replace('modal-visible','modal-hidden');
     }
 
     async function orderWhatsApp() {
-      const name = document.getElementById("c_name").value.trim();
-      const total = cart.reduce((s, i) => s + (i.price * i.qty), 0) * activeMultiplier;
-      for (const i of cart) { const p = products.find(x => x.id === i.id); await db.ref('products/' + i.id).update({ stock: p.stock }); }
-      await db.ref('orders').push({ customer: name, items: cart, total: total, date: new Date().toLocaleString() });
-      let msg = `Bestellung von *${name}*:%0A` + cart.map(i => `- ${i.qty}x ${i.name}`).join("%0A") + `%0AGesamt: ${total.toFixed(2)} €`;
-      window.open(`https://wa.me/?text=${msg}`, "_blank");
-      cart = []; closeModals(); renderCart();
+        const name = document.getElementById("c_name").value.trim();
+        const time = document.getElementById("c_time").value.trim();
+        const total = parseFloat(document.getElementById("totalPrice").textContent);
+        
+        // SICHERES LAGER UPDATE (ALLES GLEICHZEITIG)
+        const updates = {};
+        cart.forEach(item => {
+            const p = products.find(x => x.id === item.id);
+            updates[`products/${item.id}/stock`] = p.stock;
+        });
+        
+        await db.ref().update(updates);
+        await db.ref('orders').push({ customer: name, time, items: cart, total, date: new Date().toLocaleString() });
+        
+        let msg = `*NEUE BESTELLUNG*%0A-----------------%0A👤: ${name}%0A🕒: ${time}%0A-----------------%0A` + 
+                  cart.map(i => `• ${i.qty}x ${i.name}`).join("%0A") + 
+                  `%0A-----------------%0A💰 *GESAMT: ${total.toFixed(2)} €*`;
+        
+        window.open(`https://wa.me/?text=${msg}`, "_blank");
+        cart = []; renderCart(); closeModals();
     }
 
+    // HELPER
     function openModal(id) { document.getElementById(id).classList.replace("modal-hidden", "modal-visible"); }
     function closeModals() { document.querySelectorAll('.fixed').forEach(m => m.classList.replace("modal-visible", "modal-hidden")); }
-    function openCheckout() { if (cart.length) openModal('checkoutModal'); }
+    function applyGlobalCode() {
+      const val = document.getElementById("discountInput").value.trim().toUpperCase();
+      const c = globalCodes.find(x => x.code === val);
+      activeMultiplier = c ? (1 - c.value/100) : 1;
+      document.getElementById("activeCodeLabel").textContent = c ? `Code aktiv (-${c.value}%)` : "Ungültig";
+      renderCart();
+    }
+    function clearCart() { cart = []; renderProducts(); renderCart(); }
+    function openCheckout() { if(cart.length) openModal('checkoutModal'); }
     function checkForm() { 
-      const btn = document.getElementById("finalOrderBtn");
-      const ok = document.getElementById("c_name").value.length > 1;
-      btn.disabled = !ok; btn.classList.toggle("opacity-30", !ok);
+        const ok = document.getElementById("c_name").value.length > 1 && document.getElementById("c_time").value.length > 1;
+        document.getElementById("finalOrderBtn").disabled = !ok;
+        document.getElementById("finalOrderBtn").classList.toggle("opacity-30", !ok);
+    }
+    function saveNewCode() {
+        const code = document.getElementById("newCodeName").value.toUpperCase();
+        const value = parseInt(document.getElementById("newCodeValue").value);
+        if(code && value) db.ref('codes').push({code, value});
+    }
+    function renderCodes() {
+        document.getElementById("codeList").innerHTML = globalCodes.map(c => `
+            <div class="flex justify-between bg-gray-800 p-2 rounded">${c.code} (-${c.value}%) 
+            <button onclick="db.ref('codes/${c.id}').remove()" class="text-red-500">X</button></div>
+        `).join("");
+    }
+    async function showHistory() {
+        const s = await db.ref('orders').limitToLast(10).once('value');
+        const orders = s.val();
+        document.getElementById("historyContent").innerHTML = orders ? Object.keys(orders).reverse().map(k => `
+            <div class="bg-gray-800 p-3 rounded-xl text-xs border-l-2 border-green-500">
+                <div class="font-bold">${orders[k].customer} (${orders[k].time})</div>
+                <div>${orders[k].items.map(i=>i.name).join(", ")}</div>
+                <div class="text-right text-indigo-400 mt-1">${orders[k].total.toFixed(2)}€</div>
+            </div>
+        `).join("") : "Keine Bestellungen";
+        openModal('historyModal');
     }
   </script>
 </body>
