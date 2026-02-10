@@ -1,80 +1,104 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Gefrierschrank Marktplatz</title>
+  <link rel="icon" href="https://fav.farm/❄️" />
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
   <style>
-    .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 100; align-items: center; justify-content: center; }
-    .modal.active { display: flex; }
-    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .modal-hidden { visibility: hidden; opacity: 0; pointer-events: none; }
+    .modal-visible { visibility: visible; opacity: 1; pointer-events: auto; transition: opacity 0.3s ease; }
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-thumb { background: #374151; border-radius: 10px; }
   </style>
 </head>
-<body class="bg-gray-950 text-white font-sans">
+<body class="bg-gray-950 text-gray-100 min-h-screen font-sans">
 
-  <div class="max-w-md mx-auto p-4 pb-24">
-    <header class="text-center py-6">
-      <h1 class="text-2xl font-bold text-indigo-500 uppercase tracking-widest">Gefrierschrank</h1>
-    </header>
+  <div class="max-w-md mx-auto p-4 pb-28">
+    <h1 class="text-2xl font-bold mb-6 text-center text-indigo-400">❄️ Gefrierschrank Marktplatz</h1>
+    
+    <div id="productList" class="space-y-3">Lade Sortiment...</div>
 
-    <div id="cat-bar" class="flex gap-2 overflow-x-auto pb-4 no-scrollbar"></div>
+    <div class="mt-6 bg-gray-900 p-5 rounded-2xl shadow-xl border border-gray-800">
+      <h2 class="text-lg font-semibold mb-3 flex justify-between">🛒 Warenkorb <button onclick="clearCart()" class="text-xs text-red-400 underline">Leeren</button></h2>
+      <div id="cartItems" class="text-sm space-y-2 mb-4"></div>
 
-    <div id="products" class="space-y-3">Lade...</div>
-  </div>
-
-  <div class="fixed bottom-0 left-0 right-0 bg-gray-900 border-t border-gray-800 p-4 z-50">
-    <div class="max-w-md mx-auto flex justify-between items-center">
-      <div>
-        <div class="text-[10px] text-gray-400 uppercase">Gesamt</div>
-        <div class="text-xl font-bold"><span id="sum">0.00</span>€</div>
+      <div class="flex gap-2">
+        <input id="discountInput" placeholder="Rabattcode" class="flex-1 p-2 rounded-lg bg-gray-800 border border-gray-700 text-sm">
+        <button onclick="applyGlobalCode()" class="bg-indigo-600 px-4 rounded-lg text-sm font-bold">OK</button>
       </div>
-      <button onclick="toggleModal('cart-modal', true)" class="bg-indigo-600 px-6 py-3 rounded-xl font-bold uppercase text-sm">Warenkorb</button>
+      <div id="activeCodeLabel" class="text-[10px] text-green-400 mt-1 h-4"></div>
+
+      <div class="mt-4 pt-3 border-t border-gray-800 text-right font-bold text-xl">
+        <span class="text-sm text-gray-500 font-normal">Gesamt:</span> <span id="totalPrice">0.00</span> €
+      </div>
+      <button onclick="openCheckout()" class="mt-4 w-full bg-green-600 hover:bg-green-500 p-3 rounded-xl font-bold shadow-lg transition-all">📲 Jetzt Bestellen</button>
+    </div>
+
+    <div class="mt-10 grid grid-cols-3 gap-2">
+      <button onclick="triggerAdmin('product')" class="text-[10px] bg-gray-900 p-2 rounded-lg border border-gray-800 text-gray-400">➕ Produkte</button>
+      <button onclick="triggerAdmin('codes')" class="text-[10px] bg-gray-900 p-2 rounded-lg border border-gray-800 text-gray-400">🎟️ Codes</button>
+      <button onclick="triggerAdmin('history')" class="text-[10px] bg-gray-900 p-2 rounded-lg border border-gray-800 text-gray-400">📜 Historie</button>
     </div>
   </div>
 
-  <div id="cart-modal" class="modal p-4">
-    <div class="bg-gray-900 w-full max-w-sm rounded-3xl p-6 flex flex-col max-h-[80vh]">
-      <h2 class="text-xl font-bold mb-4 uppercase">Warenkorb</h2>
-      <div id="cart-items" class="flex-1 overflow-y-auto space-y-3 mb-4"></div>
-      <div class="border-t border-gray-800 pt-4 space-y-3">
-        <input id="user-name" type="text" placeholder="Dein Name" class="w-full bg-gray-800 p-3 rounded-xl outline-none border border-gray-700">
-        <button id="wa-btn" onclick="sendOrder()" class="w-full bg-green-600 py-4 rounded-xl font-bold uppercase shadow-lg">Per WhatsApp bestellen</button>
-        <button onclick="toggleModal('cart-modal', false)" class="w-full text-gray-400 text-sm py-2">Schließen</button>
-      </div>
-    </div>
-  </div>
-
-  <div class="text-center pb-10">
-    <button onclick="adminLogin()" class="text-gray-800 text-[10px] uppercase tracking-widest">Admin Login</button>
-  </div>
-
-  <div id="admin-modal" class="modal p-4">
-    <div class="bg-gray-900 w-full max-w-sm rounded-3xl p-6 overflow-y-auto max-h-[90vh]">
-      <div class="flex justify-between items-center mb-6">
-        <h2 class="text-xl font-bold uppercase text-red-500">Admin</h2>
-        <button onclick="toggleModal('admin-modal', false)">✕</button>
-      </div>
-      <button onclick="openEditor()" class="w-full bg-indigo-600 py-3 rounded-xl font-bold mb-6 uppercase text-sm">Neues Produkt</button>
-      <div id="admin-list" class="space-y-2"></div>
-    </div>
-  </div>
-
-  <div id="edit-modal" class="modal p-4">
-    <div class="bg-gray-900 w-full max-w-sm rounded-3xl p-6">
-      <h2 class="text-lg font-bold mb-4 uppercase">Bearbeiten</h2>
-      <div class="space-y-3">
-        <input id="m-name" placeholder="Name" class="w-full bg-gray-800 p-3 rounded-xl">
-        <input id="m-cat" placeholder="Kategorie" class="w-full bg-gray-800 p-3 rounded-xl">
-        <div class="flex gap-2">
-            <input id="m-price" type="number" step="0.01" placeholder="Preis" class="w-1/2 bg-gray-800 p-3 rounded-xl">
-            <input id="m-stock" type="number" placeholder="Lager" class="w-1/2 bg-gray-800 p-3 rounded-xl">
+  <div id="checkoutModal" class="fixed inset-0 bg-black/90 flex items-center justify-center p-4 modal-hidden z-50">
+    <div class="bg-gray-900 border border-gray-700 p-6 rounded-2xl w-full max-w-sm">
+      <h3 class="text-xl font-bold mb-4 text-green-400">Bestellung bestätigen</h3>
+      <div class="space-y-4">
+        <div>
+          <label class="text-[10px] text-gray-400 uppercase font-bold">Dein Name</label>
+          <input id="c_name" type="text" oninput="checkForm()" class="w-full bg-gray-800 border border-gray-700 p-3 rounded-xl" placeholder="Eintragen...">
         </div>
-        <button onclick="saveProduct()" class="w-full bg-indigo-600 py-3 rounded-xl font-bold uppercase">Speichern</button>
-        <button id="del-btn" onclick="deleteProduct()" class="w-full text-red-500 text-xs mt-2 uppercase">Löschen</button>
+        <div>
+          <label class="text-[10px] text-gray-400 uppercase font-bold">Wann holst du es ab?</label>
+          <input id="c_time" type="text" oninput="checkForm()" class="w-full bg-gray-800 border border-gray-700 p-3 rounded-xl" placeholder="z.B. heute 18:00 Uhr">
+        </div>
+        <button id="finalOrderBtn" onclick="orderWhatsApp()" disabled class="w-full bg-green-600 p-4 rounded-xl font-bold opacity-30 transition-all">An WhatsApp senden</button>
+        <button onclick="closeModals()" class="w-full text-gray-500 text-sm">Abbrechen</button>
       </div>
+    </div>
+  </div>
+
+  <div id="codeModal" class="fixed inset-0 bg-black/90 flex items-center justify-center p-4 modal-hidden z-50">
+    <div class="bg-gray-900 border border-gray-700 p-6 rounded-2xl w-full max-w-sm">
+      <h3 class="text-xl font-bold mb-4 text-indigo-400">Rabattcodes</h3>
+      <div class="space-y-2 mb-4 max-h-40 overflow-y-auto" id="codeList"></div>
+      <div class="space-y-2 border-t border-gray-800 pt-4">
+        <input id="newCodeName" placeholder="Code (z.B. DEAL20)" class="w-full bg-gray-800 p-2 rounded-lg text-sm">
+        <input id="newCodeValue" type="number" placeholder="Rabatt in %" class="w-full bg-gray-800 p-2 rounded-lg text-sm">
+        <button onclick="saveNewCode()" class="w-full bg-indigo-600 p-2 rounded-lg font-bold">Code erstellen</button>
+      </div>
+      <button onclick="closeModals()" class="w-full mt-4 text-gray-500 text-sm">Schließen</button>
+    </div>
+  </div>
+
+  <div id="adminModal" class="fixed inset-0 bg-black/90 flex items-center justify-center p-4 modal-hidden z-50">
+    <div class="bg-gray-900 border border-gray-700 p-6 rounded-2xl w-full max-w-sm">
+      <h3 class="text-xl font-bold mb-4 text-indigo-400">Produkt-Details</h3>
+      <div class="space-y-3">
+        <input id="m_name" placeholder="Name" class="w-full bg-gray-800 p-2 rounded-lg">
+        <input id="m_price" type="number" step="0.01" placeholder="Normalpreis €" class="w-full bg-gray-800 p-2 rounded-lg">
+        <input id="m_stock" type="number" placeholder="Bestand" class="w-full bg-gray-800 p-2 rounded-lg">
+        <div class="p-3 bg-red-950/20 border border-red-900/30 rounded-lg">
+            <label class="text-[10px] text-red-400 font-bold uppercase">Einzel-Rabatt (Banner %)</label>
+            <input id="m_sale" type="number" placeholder="0 für keinen" class="w-full bg-gray-800 p-2 rounded-lg mt-1">
+        </div>
+        <button onclick="saveToFirebase()" class="w-full bg-indigo-600 p-3 rounded-xl font-bold">Speichern</button>
+        <button id="deleteBtn" onclick="deleteFromFirebase()" class="w-full bg-red-900/50 text-red-400 p-2 rounded-xl text-sm hidden">Produkt löschen</button>
+        <button onclick="closeModals()" class="w-full mt-2 text-gray-500 text-sm">Abbrechen</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="historyModal" class="fixed inset-0 bg-black/95 flex items-center justify-center p-4 modal-hidden z-50">
+    <div class="bg-gray-900 border border-gray-700 p-6 rounded-2xl w-full max-w-sm max-h-[80vh] flex flex-col">
+      <h3 class="text-xl font-bold mb-4 text-green-400">Bestellhistorie</h3>
+      <div id="historyContent" class="space-y-3 overflow-y-auto flex-1 pr-2"></div>
+      <button onclick="closeModals()" class="w-full mt-4 bg-gray-800 p-2 rounded-lg">Schließen</button>
     </div>
   </div>
 
@@ -91,145 +115,99 @@
 
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
-    let data = [], cart = [], editId = null;
+    let products = [], cart = [], globalCodes = [], activeMultiplier = 1, editingId = null;
 
-    // SYNC
-    db.ref('products').on('value', s => {
-      const val = s.val();
-      data = val ? Object.keys(val).map(k => ({id: k, ...val[k]})) : [];
-      render();
-      renderAdmin();
-    });
+    db.ref('products').on('value', s => { products = s.val() ? Object.keys(s.val()).map(k => ({id:k, ...s.val()[k]})) : []; renderProducts(); });
+    db.ref('codes').on('value', s => { globalCodes = s.val() ? Object.keys(s.val()).map(k => ({id:k, ...s.val()[k]})) : []; renderCodes(); });
 
-    function render(filter = 'all') {
-      const list = document.getElementById('products');
-      const cats = ['all', ...new Set(data.map(p => p.category))];
-      
-      document.getElementById('cat-bar').innerHTML = cats.map(c => `
-        <button onclick="render('${c}')" class="px-4 py-2 rounded-xl text-xs font-bold uppercase border ${filter===c ? 'bg-indigo-600 border-indigo-500':'bg-gray-900 border-gray-800 text-gray-500'}">${c==='all'?'Alle':c}</button>
-      `).join('');
-
-      list.innerHTML = data.filter(p => filter==='all' || p.category === filter).map(p => {
-        const inCart = cart.find(i => i.id === p.id)?.qty || 0;
-        const avail = p.stock - inCart;
-        return `
-          <div class="bg-gray-900 p-4 rounded-2xl flex justify-between items-center border border-gray-800">
-            <div>
-              <div class="font-bold">${p.name}</div>
-              <div class="text-xs ${avail > 0 ? 'text-green-500':'text-red-500'} uppercase font-bold mt-1">${avail > 0 ? 'Lager: '+avail : 'Ausverkauft'}</div>
-              <div class="text-indigo-400 font-bold mt-1">${p.price.toFixed(2)}€</div>
+    function renderProducts() {
+      const list = document.getElementById("productList");
+      list.innerHTML = products.length ? "" : "<div class='text-center text-gray-600 py-10'>Keine Produkte online.</div>";
+      products.forEach(p => {
+        const salePrice = p.sale > 0 ? p.price * (1 - p.sale/100) : p.price;
+        list.innerHTML += `
+          <div class="bg-gray-900 p-4 rounded-2xl flex justify-between items-center border border-gray-800 relative overflow-hidden">
+            ${p.sale > 0 ? `<div class="absolute top-0 left-0 bg-red-600 text-[8px] font-bold px-1.5 py-0.5 rounded-br-lg shadow-md z-10">-${p.sale}%</div>` : ''}
+            <div onclick="editProduct('${p.id}')" class="cursor-pointer flex-1 pt-1">
+              <div class="font-bold text-gray-100">${p.name}</div>
+              <div class="text-sm mt-1">
+                ${p.sale > 0 ? `<span class="text-red-400 font-bold">${salePrice.toFixed(2)}€</span> <span class="text-gray-600 line-through text-xs">${p.price.toFixed(2)}€</span>` : `<span class="text-indigo-400">${p.price.toFixed(2)}€</span>`}
+                <span class="text-gray-600 ml-2">• ${p.stock} Stk.</span>
+              </div>
             </div>
-            <button onclick="addToCart('${p.id}')" class="w-12 h-12 bg-indigo-600 rounded-xl font-bold text-xl ${avail <= 0 ? 'opacity-20':''}" ${avail <= 0 ? 'disabled':''}>+</button>
-          </div>
-        `;
-      }).join('');
+            <button onclick="addToCart('${p.id}')" class="bg-indigo-600 hover:bg-indigo-500 w-12 h-12 rounded-xl font-bold shadow-lg transition-transform active:scale-90 ${p.stock <= 0 ? 'opacity-20' : ''}" ${p.stock <= 0 ? 'disabled' : ''}>+</button>
+          </div>`;
+      });
+    }
+
+    function renderCodes() {
+      const list = document.getElementById("codeList");
+      list.innerHTML = globalCodes.map(c => `<div class="flex justify-between items-center bg-gray-800 p-2 rounded-lg text-sm mb-1"><span><b>${c.code}</b> (-${c.value}%)</span><button onclick="deleteCode('${c.id}')" class="text-red-500 font-bold px-2">X</button></div>`).join("");
     }
 
     function addToCart(id) {
-      const p = data.find(x => x.id === id);
+      const p = products.find(x => x.id === id); if (p.stock <= 0) return; p.stock--;
+      const price = p.sale > 0 ? p.price * (1 - p.sale/100) : p.price;
       const item = cart.find(i => i.id === id);
-      const currentQty = item ? item.qty : 0;
-
-      if (p.stock > currentQty) {
-        if (item) item.qty++; else cart.push({ id, name: p.name, price: p.price, qty: 1 });
-        updateCart();
-      }
+      if (item) item.qty++; else cart.push({ id, name: p.name, price, qty: 1 });
+      renderProducts(); renderCart();
     }
 
-    function updateCart() {
-      const total = cart.reduce((s, i) => s + (i.price * i.qty), 0);
-      document.getElementById('sum').textContent = total.toFixed(2);
-      render();
-      renderCartItems();
+    function renderCart() {
+      const total = cart.reduce((s, i) => s + (i.price * i.qty), 0) * activeMultiplier;
+      document.getElementById("cartItems").innerHTML = cart.map(i => `<div class="flex justify-between"><span>${i.qty}x ${i.name}</span><span>${(i.price * i.qty).toFixed(2)} €</span></div>`).join("") || "Warenkorb leer";
+      document.getElementById("totalPrice").textContent = total.toFixed(2);
     }
 
-    function renderCartItems() {
-      const list = document.getElementById('cart-items');
-      if (cart.length === 0) { list.innerHTML = "<div class='text-center py-10 text-gray-500'>Warenkorb ist leer</div>"; return; }
-      list.innerHTML = cart.map(i => `
-        <div class="flex justify-between items-center bg-gray-800 p-3 rounded-xl">
-          <div class="text-sm">${i.name}</div>
-          <div class="flex items-center gap-3">
-            <button onclick="changeQty('${i.id}', -1)" class="w-8 h-8 bg-gray-700 rounded-lg">－</button>
-            <span class="font-bold">${i.qty}</span>
-            <button onclick="changeQty('${i.id}', 1)" class="w-8 h-8 bg-indigo-600 rounded-lg">＋</button>
-          </div>
-        </div>
-      `).join('');
+    function applyGlobalCode() {
+      const val = document.getElementById("discountInput").value.trim().toUpperCase();
+      const c = globalCodes.find(x => x.code === val);
+      activeMultiplier = c ? (1 - c.value/100) : 1;
+      document.getElementById("activeCodeLabel").textContent = c ? `Code "${val}" aktiv (-${c.value}%)` : (val ? "Ungültig" : "");
+      renderCart();
     }
 
-    function changeQty(id, delta) {
-      const item = cart.find(i => i.id === id);
-      const p = data.find(x => x.id === id);
-      if (delta > 0 && p.stock > item.qty) item.qty++;
-      if (delta < 0) item.qty--;
-      cart = cart.filter(i => i.qty > 0);
-      updateCart();
+    function clearCart() { cart.forEach(i => { const p = products.find(x => x.id === i.id); if(p) p.stock += i.qty; }); cart = []; renderProducts(); renderCart(); }
+
+    function triggerAdmin(type) { if (prompt("Passwort:") === "1234") { if(type==='product'){editingId=null;openModal('adminModal');} if(type==='codes')openModal('codeModal'); if(type==='history')showHistory(); } }
+    function editProduct(id) { if (prompt("Passwort:") === "1234") { editingId = id; const p = products.find(x => x.id === id); document.getElementById("m_name").value = p.name; document.getElementById("m_price").value = p.price; document.getElementById("m_stock").value = p.stock; document.getElementById("m_sale").value = p.sale || 0; document.getElementById("deleteBtn").classList.remove("hidden"); openModal('adminModal'); } }
+
+    async function saveToFirebase() {
+      const data = { name: document.getElementById("m_name").value, price: parseFloat(document.getElementById("m_price").value), stock: parseInt(document.getElementById("m_stock").value), sale: parseInt(document.getElementById("m_sale").value) || 0 };
+      if (editingId) await db.ref('products/' + editingId).update(data); else await db.ref('products').push(data);
+      closeModals();
     }
 
-    async function sendOrder() {
-      const name = document.getElementById('user-name').value.trim();
-      if (!name) return alert("Bitte Name eingeben");
+    async function saveNewCode() { const code = document.getElementById("newCodeName").value.trim().toUpperCase(); const value = parseInt(document.getElementById("newCodeValue").value); if (code && value) { await db.ref('codes').push({ code, value }); document.getElementById("newCodeName").value=""; document.getElementById("newCodeValue").value=""; } }
+    function deleteCode(id) { db.ref('codes/' + id).remove(); }
+    function deleteFromFirebase() { if(confirm("Löschen?")) { db.ref('products/' + editingId).remove(); closeModals(); } }
 
-      // BESTANDSABZUG ERST HIER BEIM KLICK
-      const updates = {};
-      for(let item of cart) {
-        const original = data.find(p => p.id === item.id);
-        if (original.stock < item.qty) return alert(original.name + " ist leider nicht mehr ausreichend da!");
-        updates[`products/${item.id}/stock`] = original.stock - item.qty;
-      }
-
-      await db.ref().update(updates);
-
-      // WhatsApp
-      const text = `*Bestellung Gefrierschrank*%0A👤 Name: ${name}%0A%0A` + 
-                   cart.map(i => `• ${i.qty}x ${i.name}`).join('%0A') + 
-                   `%0A%0A💰 Gesamt: *${document.getElementById('sum').textContent}€*`;
-      
-      window.open(`https://wa.me/?text=${text}`, '_blank');
-      cart = [];
-      updateCart();
-      toggleModal('cart-modal', false);
+    async function showHistory() {
+      const s = await db.ref('orders').limitToLast(20).once('value'); const orders = s.val(); const content = document.getElementById("historyContent");
+      content.innerHTML = orders ? "" : "Keine Daten.";
+      if (orders) { Object.keys(orders).reverse().forEach(k => { const o = orders[k]; content.innerHTML += `<div class="bg-gray-800 p-3 rounded-xl border-l-4 border-indigo-500 text-xs"><div class="text-gray-500">${o.date}</div><div class="font-bold">${o.customer} (${o.time || '?'})</div><div>${o.items.map(i=>i.name).join(", ")}</div><div class="text-right text-green-400 font-bold">${o.total.toFixed(2)}€</div></div>`; }); }
+      openModal('historyModal');
     }
 
-    // ADMIN
-    function renderAdmin() {
-      document.getElementById('admin-list').innerHTML = data.map(p => `
-        <div onclick="openEditor('${p.id}')" class="bg-gray-800 p-3 rounded-xl flex justify-between items-center cursor-pointer">
-          <div class="text-sm font-bold">${p.name}</div>
-          <div class="flex gap-4 items-center">
-            <span class="text-xs font-mono text-green-500">${p.stock} Stk</span>
-            <span class="text-indigo-400 font-bold">${p.price.toFixed(2)}€</span>
-          </div>
-        </div>
-      `).join('');
+    async function orderWhatsApp() {
+      const name = document.getElementById("c_name").value.trim();
+      const time = document.getElementById("c_time").value.trim();
+      const total = cart.reduce((s, i) => s + (i.price * i.qty), 0) * activeMultiplier;
+      for (const i of cart) { const p = products.find(x => x.id === i.id); await db.ref('products/' + i.id).update({ stock: p.stock }); }
+      await db.ref('orders').push({ customer: name, time: time, items: cart, total: total, date: new Date().toLocaleString() });
+      let msg = `Bestellung von *${name}*:%0AAbholung: *${time}*%0A` + cart.map(i => `- ${i.qty}x ${i.name}`).join("%0A") + `%0AGesamt: ${total.toFixed(2)} €`;
+      window.open(`https://wa.me/?text=${msg}`, "_blank");
+      cart = []; closeModals(); renderCart();
     }
 
-    function openEditor(id = null) {
-      editId = id;
-      const p = id ? data.find(x => x.id === id) : { name: '', category: '', price: '', stock: '' };
-      document.getElementById('m-name').value = p.name;
-      document.getElementById('m-cat').value = p.category;
-      document.getElementById('m-price').value = p.price;
-      document.getElementById('m-stock').value = p.stock;
-      document.getElementById('del-btn').style.display = id ? 'block' : 'none';
-      toggleModal('edit-modal', true);
+    function openModal(id) { document.getElementById(id).classList.replace("modal-hidden", "modal-visible"); }
+    function closeModals() { document.querySelectorAll('.fixed').forEach(m => m.classList.replace("modal-visible", "modal-hidden")); }
+    function openCheckout() { if (cart.length) { document.getElementById("c_name").value=""; document.getElementById("c_time").value=""; checkForm(); openModal('checkoutModal'); } }
+    function checkForm() { 
+      const btn = document.getElementById("finalOrderBtn");
+      const ok = document.getElementById("c_name").value.length > 1 && document.getElementById("c_time").value.length > 1;
+      btn.disabled = !ok; btn.classList.toggle("opacity-30", !ok);
     }
-
-    function saveProduct() {
-      const p = {
-        name: document.getElementById('m-name').value,
-        category: document.getElementById('m-cat').value,
-        price: parseFloat(document.getElementById('m-price').value),
-        stock: parseInt(document.getElementById('m-stock').value)
-      };
-      if (editId) db.ref('products/' + editId).update(p); else db.ref('products').push(p);
-      toggleModal('edit-modal', false);
-    }
-
-    function deleteProduct() { if(confirm("Löschen?")) { db.ref('products/' + editId).remove(); toggleModal('edit-modal', false); } }
-    function toggleModal(id, show) { document.getElementById(id).classList.toggle('active', show); }
-    function adminLogin() { if(prompt("PW:") === "030199") toggleModal('admin-modal', true); }
   </script>
 </body>
 </html>
