@@ -45,13 +45,22 @@
 
   <div id="adminMenuModal" class="fixed inset-0 bg-black/95 flex items-center justify-center p-4 modal-hidden z-[60]">
     <div class="bg-gray-900 border border-gray-700 p-6 rounded-2xl w-full max-w-sm">
-      <h3 class="text-xl font-bold mb-6 text-indigo-400 uppercase text-center">Verwaltung</h3>
+      <h3 class="text-xl font-bold mb-6 text-indigo-400 uppercase text-center tracking-tighter">Admin Bereich</h3>
       <div class="grid gap-3">
-        <button onclick="closeModals(); openModal('adminModal')" class="w-full bg-gray-800 p-4 rounded-xl font-bold text-sm text-left border border-gray-700 flex justify-between">➕ Produkte verwalten <span>→</span></button>
-        <button onclick="closeModals(); openModal('codeModal')" class="w-full bg-gray-800 p-4 rounded-xl font-bold text-sm text-left border border-gray-700 flex justify-between">🎟️ Rabattcodes <span>→</span></button>
-        <button onclick="closeModals(); showHistory()" class="w-full bg-gray-800 p-4 rounded-xl font-bold text-sm text-left border border-gray-700 flex justify-between">📜 Bestellhistorie <span>→</span></button>
+        <button onclick="closeModals(); openProductAdmin()" class="w-full bg-gray-800 p-4 rounded-xl font-bold text-sm text-left border border-gray-700 flex justify-between items-center group active:bg-gray-700 transition">
+          <span>➕ Produkte verwalten</span>
+          <span class="text-indigo-400">→</span>
+        </button>
+        <button onclick="closeModals(); openModal('codeModal')" class="w-full bg-gray-800 p-4 rounded-xl font-bold text-sm text-left border border-gray-700 flex justify-between items-center group active:bg-gray-700 transition">
+          <span>🎟️ Rabattcodes</span>
+          <span class="text-indigo-400">→</span>
+        </button>
+        <button onclick="closeModals(); showHistory()" class="w-full bg-gray-800 p-4 rounded-xl font-bold text-sm text-left border border-gray-700 flex justify-between items-center group active:bg-gray-700 transition">
+          <span>📜 Bestellhistorie</span>
+          <span class="text-indigo-400">→</span>
+        </button>
       </div>
-      <button onclick="closeModals()" class="w-full mt-6 text-gray-500 text-xs uppercase font-black">Schließen</button>
+      <button onclick="closeModals()" class="w-full mt-6 text-gray-500 text-[10px] uppercase font-black tracking-widest text-center">Schließen</button>
     </div>
   </div>
 
@@ -82,33 +91,33 @@
         <input id="newCodeValue" type="number" placeholder="Rabatt in %" class="w-full bg-gray-800 p-2 rounded-lg text-sm">
         <button onclick="saveNewCode()" class="w-full bg-indigo-600 p-2 rounded-lg font-bold">Code erstellen</button>
       </div>
-      <button onclick="closeModals()" class="w-full mt-4 text-gray-500 text-sm">Zurück</button>
+      <button onclick="openModal('adminMenuModal')" class="w-full mt-4 text-gray-500 text-sm font-bold uppercase tracking-tighter">Zurück zum Menü</button>
     </div>
   </div>
 
   <div id="adminModal" class="fixed inset-0 bg-black/90 flex items-center justify-center p-4 modal-hidden z-50">
     <div class="bg-gray-900 border border-gray-700 p-6 rounded-2xl w-full max-w-sm">
-      <h3 class="text-xl font-bold mb-4 text-indigo-400">Produkt-Details</h3>
+      <h3 class="text-xl font-bold mb-4 text-indigo-400" id="adminTitle">Produkt bearbeiten</h3>
       <div class="space-y-3">
-        <input id="m_name" placeholder="Name" class="w-full bg-gray-800 p-2 rounded-lg">
-        <input id="m_price" type="number" step="0.01" placeholder="Normalpreis €" class="w-full bg-gray-800 p-2 rounded-lg">
-        <input id="m_stock" type="number" placeholder="Bestand" class="w-full bg-gray-800 p-2 rounded-lg">
+        <input id="m_name" placeholder="Name" class="w-full bg-gray-800 p-2 rounded-lg outline-none">
+        <input id="m_price" type="number" step="0.01" placeholder="Normalpreis €" class="w-full bg-gray-800 p-2 rounded-lg outline-none">
+        <input id="m_stock" type="number" placeholder="Bestand" class="w-full bg-gray-800 p-2 rounded-lg outline-none">
         <div class="p-3 bg-red-950/20 border border-red-900/30 rounded-lg">
             <label class="text-[10px] text-red-400 font-bold uppercase">Einzel-Rabatt (Banner %)</label>
-            <input id="m_sale" type="number" placeholder="0 für keinen" class="w-full bg-gray-800 p-2 rounded-lg mt-1">
+            <input id="m_sale" type="number" placeholder="0 für keinen" class="w-full bg-gray-800 p-2 rounded-lg mt-1 outline-none">
         </div>
-        <button onclick="saveToFirebase()" class="w-full bg-indigo-600 p-3 rounded-xl font-bold">Speichern</button>
+        <button onclick="saveToFirebase()" class="w-full bg-indigo-600 p-3 rounded-xl font-bold active:scale-95 transition">Speichern</button>
         <button id="deleteBtn" onclick="deleteFromFirebase()" class="w-full bg-red-900/50 text-red-400 p-2 rounded-xl text-sm hidden">Produkt löschen</button>
-        <button onclick="closeModals()" class="w-full mt-2 text-gray-500 text-sm">Abbrechen</button>
+        <button onclick="openModal('adminMenuModal')" class="w-full mt-2 text-gray-500 text-xs font-bold uppercase tracking-tighter">Zurück zum Menü</button>
       </div>
     </div>
   </div>
 
   <div id="historyModal" class="fixed inset-0 bg-black/95 flex items-center justify-center p-4 modal-hidden z-50">
     <div class="bg-gray-900 border border-gray-700 p-6 rounded-2xl w-full max-w-sm max-h-[80vh] flex flex-col">
-      <h3 class="text-xl font-bold mb-4 text-green-400">Bestellhistorie</h3>
+      <h3 class="text-xl font-bold mb-4 text-green-400 uppercase tracking-tighter">Bestellhistorie</h3>
       <div id="historyContent" class="space-y-3 overflow-y-auto flex-1 pr-2"></div>
-      <button onclick="closeModals()" class="w-full mt-4 bg-gray-800 p-2 rounded-lg">Zurück</button>
+      <button onclick="openModal('adminMenuModal')" class="w-full mt-4 bg-gray-800 p-2 rounded-lg text-sm font-bold uppercase">Zurück zum Menü</button>
     </div>
   </div>
 
@@ -138,7 +147,7 @@
         list.innerHTML += `
           <div class="bg-gray-900 p-4 rounded-2xl flex justify-between items-center border border-gray-800 relative overflow-hidden">
             ${p.sale > 0 ? `<div class="absolute top-0 left-0 bg-red-600 text-[8px] font-bold px-1.5 py-0.5 rounded-br-lg shadow-md z-10">-${p.sale}%</div>` : ''}
-            <div class="flex-1 pt-1">
+            <div onclick="editProductPrompt('${p.id}')" class="flex-1 pt-1 cursor-pointer">
               <div class="font-bold text-gray-100">${p.name}</div>
               <div class="text-sm mt-1">
                 ${p.sale > 0 ? `<span class="text-red-400 font-bold">${salePrice.toFixed(2)}€</span> <span class="text-gray-600 line-through text-xs">${p.price.toFixed(2)}€</span>` : `<span class="text-indigo-400">${p.price.toFixed(2)}€</span>`}
@@ -148,6 +157,39 @@
             <button onclick="addToCart('${p.id}')" class="bg-indigo-600 hover:bg-indigo-500 w-12 h-12 rounded-xl font-bold shadow-lg transition-transform active:scale-90 ${p.stock <= 0 ? 'opacity-20' : ''}" ${p.stock <= 0 ? 'disabled' : ''}>+</button>
           </div>`;
       });
+    }
+
+    function triggerAdminMenu() {
+        if (prompt("Passwort:") === "030199") {
+            openModal('adminMenuModal');
+        } else {
+            alert("Falsches Passwort.");
+        }
+    }
+
+    function editProductPrompt(id) {
+        if (prompt("Passwort zum Bearbeiten:") === "030199") {
+            editingId = id;
+            const p = products.find(x => x.id === id);
+            document.getElementById("m_name").value = p.name;
+            document.getElementById("m_price").value = p.price;
+            document.getElementById("m_stock").value = p.stock;
+            document.getElementById("m_sale").value = p.sale || 0;
+            document.getElementById("deleteBtn").classList.remove("hidden");
+            document.getElementById("adminTitle").innerText = "Produkt bearbeiten";
+            openModal('adminModal');
+        }
+    }
+
+    function openProductAdmin() {
+        editingId = null;
+        document.getElementById("m_name").value = "";
+        document.getElementById("m_price").value = "";
+        document.getElementById("m_stock").value = "";
+        document.getElementById("m_sale").value = 0;
+        document.getElementById("deleteBtn").classList.add("hidden");
+        document.getElementById("adminTitle").innerText = "Neues Produkt";
+        openModal('adminModal');
     }
 
     function renderCodes() {
@@ -179,21 +221,15 @@
 
     function clearCart() { cart.forEach(i => { const p = products.find(x => x.id === i.id); if(p) p.stock += i.qty; }); cart = []; renderProducts(); renderCart(); }
 
-    function triggerAdminMenu() {
-        if (prompt("Passwort:") === "030199") {
-            openModal('adminMenuModal');
-        }
-    }
-
     async function saveToFirebase() {
       const data = { name: document.getElementById("m_name").value, price: parseFloat(document.getElementById("m_price").value), stock: parseInt(document.getElementById("m_stock").value), sale: parseInt(document.getElementById("m_sale").value) || 0 };
       if (editingId) await db.ref('products/' + editingId).update(data); else await db.ref('products').push(data);
-      closeModals();
+      openModal('adminMenuModal');
     }
 
     async function saveNewCode() { const code = document.getElementById("newCodeName").value.trim().toUpperCase(); const value = parseInt(document.getElementById("newCodeValue").value); if (code && value) { await db.ref('codes').push({ code, value }); document.getElementById("newCodeName").value=""; document.getElementById("newCodeValue").value=""; } }
     function deleteCode(id) { db.ref('codes/' + id).remove(); }
-    function deleteFromFirebase() { if(confirm("Löschen?")) { db.ref('products/' + editingId).remove(); closeModals(); } }
+    function deleteFromFirebase() { if(confirm("Löschen?")) { db.ref('products/' + editingId).remove(); openModal('adminMenuModal'); } }
 
     async function showHistory() {
       const s = await db.ref('orders').limitToLast(20).once('value'); const orders = s.val(); const content = document.getElementById("historyContent");
@@ -213,7 +249,10 @@
       cart = []; closeModals(); renderCart();
     }
 
-    function openModal(id) { document.getElementById(id).classList.replace("modal-hidden", "modal-visible"); }
+    function openModal(id) { 
+        closeModals();
+        document.getElementById(id).classList.replace("modal-hidden", "modal-visible"); 
+    }
     function closeModals() { document.querySelectorAll('.fixed').forEach(m => m.classList.replace("modal-visible", "modal-hidden")); }
     function openCheckout() { if (cart.length) { document.getElementById("c_name").value=""; document.getElementById("c_time").value=""; checkForm(); openModal('checkoutModal'); } }
     function checkForm() { 
