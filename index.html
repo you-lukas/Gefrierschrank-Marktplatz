@@ -38,10 +38,20 @@
       <button onclick="openCheckout()" class="mt-4 w-full bg-green-600 hover:bg-green-500 p-3 rounded-xl font-bold shadow-lg transition-all">📲 Jetzt Bestellen</button>
     </div>
 
-    <div class="mt-10 grid grid-cols-3 gap-2">
-      <button onclick="triggerAdmin('product')" class="text-[10px] bg-gray-900 p-2 rounded-lg border border-gray-800 text-gray-400">➕ Produkte</button>
-      <button onclick="triggerAdmin('codes')" class="text-[10px] bg-gray-900 p-2 rounded-lg border border-gray-800 text-gray-400">🎟️ Codes</button>
-      <button onclick="triggerAdmin('history')" class="text-[10px] bg-gray-900 p-2 rounded-lg border border-gray-800 text-gray-400">📜 Historie</button>
+    <div class="mt-16 text-center">
+      <button onclick="triggerAdminMenu()" class="text-[10px] text-gray-800 hover:text-gray-600 uppercase tracking-[0.2em] font-bold transition-colors">Admin</button>
+    </div>
+  </div>
+
+  <div id="adminMenuModal" class="fixed inset-0 bg-black/95 flex items-center justify-center p-4 modal-hidden z-[60]">
+    <div class="bg-gray-900 border border-gray-700 p-6 rounded-2xl w-full max-w-sm">
+      <h3 class="text-xl font-bold mb-6 text-indigo-400 uppercase text-center">Verwaltung</h3>
+      <div class="grid gap-3">
+        <button onclick="closeModals(); openModal('adminModal')" class="w-full bg-gray-800 p-4 rounded-xl font-bold text-sm text-left border border-gray-700 flex justify-between">➕ Produkte verwalten <span>→</span></button>
+        <button onclick="closeModals(); openModal('codeModal')" class="w-full bg-gray-800 p-4 rounded-xl font-bold text-sm text-left border border-gray-700 flex justify-between">🎟️ Rabattcodes <span>→</span></button>
+        <button onclick="closeModals(); showHistory()" class="w-full bg-gray-800 p-4 rounded-xl font-bold text-sm text-left border border-gray-700 flex justify-between">📜 Bestellhistorie <span>→</span></button>
+      </div>
+      <button onclick="closeModals()" class="w-full mt-6 text-gray-500 text-xs uppercase font-black">Schließen</button>
     </div>
   </div>
 
@@ -72,7 +82,7 @@
         <input id="newCodeValue" type="number" placeholder="Rabatt in %" class="w-full bg-gray-800 p-2 rounded-lg text-sm">
         <button onclick="saveNewCode()" class="w-full bg-indigo-600 p-2 rounded-lg font-bold">Code erstellen</button>
       </div>
-      <button onclick="closeModals()" class="w-full mt-4 text-gray-500 text-sm">Schließen</button>
+      <button onclick="closeModals()" class="w-full mt-4 text-gray-500 text-sm">Zurück</button>
     </div>
   </div>
 
@@ -98,7 +108,7 @@
     <div class="bg-gray-900 border border-gray-700 p-6 rounded-2xl w-full max-w-sm max-h-[80vh] flex flex-col">
       <h3 class="text-xl font-bold mb-4 text-green-400">Bestellhistorie</h3>
       <div id="historyContent" class="space-y-3 overflow-y-auto flex-1 pr-2"></div>
-      <button onclick="closeModals()" class="w-full mt-4 bg-gray-800 p-2 rounded-lg">Schließen</button>
+      <button onclick="closeModals()" class="w-full mt-4 bg-gray-800 p-2 rounded-lg">Zurück</button>
     </div>
   </div>
 
@@ -122,13 +132,13 @@
 
     function renderProducts() {
       const list = document.getElementById("productList");
-      list.innerHTML = products.length ? "" : "<div class='text-center text-gray-600 py-10'>Keine Produkte online.</div>";
+      list.innerHTML = products.length ? "" : "<div class='text-center text-gray-600 py-10 text-xs'>Sortiment wird geladen...</div>";
       products.forEach(p => {
         const salePrice = p.sale > 0 ? p.price * (1 - p.sale/100) : p.price;
         list.innerHTML += `
           <div class="bg-gray-900 p-4 rounded-2xl flex justify-between items-center border border-gray-800 relative overflow-hidden">
             ${p.sale > 0 ? `<div class="absolute top-0 left-0 bg-red-600 text-[8px] font-bold px-1.5 py-0.5 rounded-br-lg shadow-md z-10">-${p.sale}%</div>` : ''}
-            <div onclick="editProduct('${p.id}')" class="cursor-pointer flex-1 pt-1">
+            <div class="flex-1 pt-1">
               <div class="font-bold text-gray-100">${p.name}</div>
               <div class="text-sm mt-1">
                 ${p.sale > 0 ? `<span class="text-red-400 font-bold">${salePrice.toFixed(2)}€</span> <span class="text-gray-600 line-through text-xs">${p.price.toFixed(2)}€</span>` : `<span class="text-indigo-400">${p.price.toFixed(2)}€</span>`}
@@ -169,8 +179,11 @@
 
     function clearCart() { cart.forEach(i => { const p = products.find(x => x.id === i.id); if(p) p.stock += i.qty; }); cart = []; renderProducts(); renderCart(); }
 
-    function triggerAdmin(type) { if (prompt("Passwort:") === "1234") { if(type==='product'){editingId=null;openModal('adminModal');} if(type==='codes')openModal('codeModal'); if(type==='history')showHistory(); } }
-    function editProduct(id) { if (prompt("Passwort:") === "1234") { editingId = id; const p = products.find(x => x.id === id); document.getElementById("m_name").value = p.name; document.getElementById("m_price").value = p.price; document.getElementById("m_stock").value = p.stock; document.getElementById("m_sale").value = p.sale || 0; document.getElementById("deleteBtn").classList.remove("hidden"); openModal('adminModal'); } }
+    function triggerAdminMenu() {
+        if (prompt("Passwort:") === "030199") {
+            openModal('adminMenuModal');
+        }
+    }
 
     async function saveToFirebase() {
       const data = { name: document.getElementById("m_name").value, price: parseFloat(document.getElementById("m_price").value), stock: parseInt(document.getElementById("m_stock").value), sale: parseInt(document.getElementById("m_sale").value) || 0 };
@@ -185,7 +198,7 @@
     async function showHistory() {
       const s = await db.ref('orders').limitToLast(20).once('value'); const orders = s.val(); const content = document.getElementById("historyContent");
       content.innerHTML = orders ? "" : "Keine Daten.";
-      if (orders) { Object.keys(orders).reverse().forEach(k => { const o = orders[k]; content.innerHTML += `<div class="bg-gray-800 p-3 rounded-xl border-l-4 border-indigo-500 text-xs"><div class="text-gray-500">${o.date}</div><div class="font-bold">${o.customer} (${o.time || '?'})</div><div>${o.items.map(i=>i.name).join(", ")}</div><div class="text-right text-green-400 font-bold">${o.total.toFixed(2)}€</div></div>`; }); }
+      if (orders) { Object.keys(orders).reverse().forEach(k => { const o = orders[k]; content.innerHTML += `<div class="bg-gray-800 p-3 rounded-xl border-l-4 border-indigo-500 text-xs mb-2"><div class="text-gray-500">${o.date}</div><div class="font-bold">${o.customer} (${o.time || '?'})</div><div>${o.items.map(i=>i.name).join(", ")}</div><div class="text-right text-green-400 font-bold">${o.total.toFixed(2)}€</div></div>`; }); }
       openModal('historyModal');
     }
 
