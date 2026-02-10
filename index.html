@@ -14,6 +14,8 @@
     ::-webkit-scrollbar { width: 5px; }
     ::-webkit-scrollbar-thumb { background: #374151; border-radius: 10px; }
     input[type="number"]::-webkit-inner-spin-button { display: none; }
+    .note-input { background: #111827; border: 1px solid #374151; font-size: 10px; padding: 2px 4px; border-radius: 4px; color: #9ca3af; width: 60px; outline: none; }
+    .note-input:focus { border-color: #6366f1; color: white; }
   </style>
 </head>
 <body class="bg-gray-950 text-gray-100 min-h-screen font-sans">
@@ -28,8 +30,8 @@
       <div id="cartItems" class="text-sm space-y-2 mb-4"></div>
 
       <div class="flex gap-2">
-        <input id="discountInput" placeholder="Rabattcode" class="flex-1 p-2 rounded-lg bg-gray-800 border border-gray-700 text-sm">
-        <button onclick="applyGlobalCode()" class="bg-indigo-600 px-4 rounded-lg text-sm font-bold">OK</button>
+        <input id="discountInput" placeholder="Rabattcode" class="flex-1 p-2 rounded-lg bg-gray-800 border border-gray-700 text-sm outline-none">
+        <button onclick="applyGlobalCode()" class="bg-indigo-600 px-4 rounded-lg text-sm font-bold active:scale-95 transition">OK</button>
       </div>
       <div id="activeCodeLabel" class="text-[10px] text-green-400 mt-1 h-4"></div>
 
@@ -44,34 +46,34 @@
     </div>
   </div>
 
-  <div id="managerModal" class="fixed inset-0 bg-black/95 modal-hidden z-[70] flex flex-col p-4 overflow-hidden">
-    <div class="max-w-4xl mx-auto w-full bg-gray-900 border border-gray-700 rounded-3xl p-6 flex flex-col max-h-full">
-      <div class="flex justify-between items-center mb-6">
-        <h2 class="text-xl font-bold text-indigo-400">Inventory & Orders</h2>
-        <button onclick="closeModals()" class="text-gray-500 text-xs font-bold border border-gray-800 px-3 py-1 rounded-lg">SCHLIESSEN</button>
+  <div id="managerModal" class="fixed inset-0 bg-black/95 modal-hidden z-[70] flex flex-col p-2 overflow-hidden">
+    <div class="max-w-5xl mx-auto w-full bg-gray-900 border border-gray-700 rounded-3xl p-4 flex flex-col max-h-full">
+      <div class="flex justify-between items-center mb-4">
+        <h2 class="text-lg font-bold text-indigo-400">Inventory Manager</h2>
+        <button onclick="closeModals()" class="text-gray-500 text-[10px] font-bold border border-gray-800 px-3 py-1 rounded-lg">CLOSE</button>
       </div>
 
-      <div class="overflow-x-auto mb-6 border-b border-gray-800">
-        <table class="w-full text-left text-xs mb-4">
-          <thead class="text-gray-500 uppercase">
+      <div class="overflow-x-auto mb-4 border-b border-gray-800 pb-4">
+        <table class="w-full text-left text-[11px]">
+          <thead class="text-gray-500 uppercase text-[9px] tracking-widest">
             <tr>
-              <th class="p-2">Produkt</th>
-              <th class="p-2">Lager</th>
-              <th class="p-2">Preis (€)</th>
-              <th class="p-2">Sale %</th>
+              <th class="p-2">Name</th>
+              <th class="p-2">Lager | Notiz</th>
+              <th class="p-2">Preis | Notiz</th>
+              <th class="p-2">Sale% | Notiz</th>
               <th class="p-2"></th>
             </tr>
           </thead>
           <tbody id="inventoryTable"></tbody>
         </table>
-        <div class="flex gap-2 mb-4">
-            <button onclick="openProductAdmin()" class="bg-indigo-600 text-[10px] font-bold px-4 py-2 rounded-lg">+ NEUES PRODUKT</button>
+        <div class="flex gap-2 mt-4">
+            <button onclick="openProductAdmin()" class="bg-indigo-600 text-[10px] font-bold px-4 py-2 rounded-lg">+ NEU</button>
             <button onclick="openModal('codeModal')" class="bg-gray-800 text-[10px] font-bold px-4 py-2 rounded-lg">🎟️ CODES</button>
         </div>
       </div>
 
-      <h3 class="font-bold text-green-500 mb-2 uppercase text-xs tracking-widest">Bestellungen</h3>
-      <div id="orderManagerList" class="overflow-y-auto space-y-2 flex-1"></div>
+      <h3 class="font-bold text-green-500 mb-2 uppercase text-[10px] tracking-widest">Bestellungen</h3>
+      <div id="orderManagerList" class="overflow-y-auto space-y-2 flex-1 pr-1"></div>
     </div>
   </div>
 
@@ -80,41 +82,41 @@
       <h3 class="text-xl font-bold mb-4 text-indigo-400">Rabattcodes</h3>
       <div class="space-y-2 mb-4 max-h-40 overflow-y-auto" id="codeList"></div>
       <div class="space-y-2 border-t border-gray-800 pt-4">
-        <input id="newCodeName" placeholder="Code (z.B. DEAL20)" class="w-full bg-gray-800 p-2 rounded-lg text-sm">
-        <input id="newCodeValue" type="number" placeholder="Rabatt in %" class="w-full bg-gray-800 p-2 rounded-lg text-sm">
+        <input id="newCodeName" placeholder="Code Name" class="w-full bg-gray-800 p-2 rounded-lg text-sm outline-none">
+        <input id="newCodeValue" type="number" placeholder="Rabatt %" class="w-full bg-gray-800 p-2 rounded-lg text-sm outline-none">
         <button onclick="saveNewCode()" class="w-full bg-indigo-600 p-2 rounded-lg font-bold">Code erstellen</button>
       </div>
-      <button onclick="openModal('managerModal')" class="w-full mt-4 text-gray-500 text-sm">Zurück zum Manager</button>
+      <button onclick="openModal('managerModal')" class="w-full mt-4 text-gray-500 text-sm">Zurück</button>
     </div>
   </div>
 
   <div id="adminModal" class="fixed inset-0 bg-black/90 flex items-center justify-center p-4 modal-hidden z-[80]">
     <div class="bg-gray-900 border border-gray-700 p-6 rounded-2xl w-full max-w-sm">
-      <h3 class="text-xl font-bold mb-4 text-indigo-400" id="adminTitle">Produkt hinzufügen</h3>
+      <h3 class="text-xl font-bold mb-4 text-indigo-400">Neues Produkt</h3>
       <div class="space-y-3">
         <input id="m_name" placeholder="Name" class="w-full bg-gray-800 p-2 rounded-lg outline-none">
         <input id="m_price" type="number" step="0.01" placeholder="Preis €" class="w-full bg-gray-800 p-2 rounded-lg outline-none">
         <input id="m_stock" type="number" placeholder="Lagerbestand" class="w-full bg-gray-800 p-2 rounded-lg outline-none">
         <input id="m_sale" type="number" placeholder="Rabatt %" class="w-full bg-gray-800 p-2 rounded-lg outline-none">
         <button onclick="saveToFirebase()" class="w-full bg-indigo-600 p-3 rounded-xl font-bold">Speichern</button>
-        <button onclick="openModal('managerModal')" class="w-full mt-2 text-gray-500 text-xs text-center block">Abbrechen</button>
+        <button onclick="openModal('managerModal')" class="w-full mt-2 text-gray-500 text-xs">Abbrechen</button>
       </div>
     </div>
   </div>
 
   <div id="checkoutModal" class="fixed inset-0 bg-black/90 flex items-center justify-center p-4 modal-hidden z-50">
-    <div class="bg-gray-900 border border-gray-700 p-6 rounded-2xl w-full max-w-sm shadow-2xl">
-      <h3 class="text-xl font-bold mb-4 text-green-400">Bestellung abschließen</h3>
+    <div class="bg-gray-900 border border-gray-700 p-6 rounded-2xl w-full max-w-sm">
+      <h3 class="text-xl font-bold mb-4 text-green-400">Bestellung bestätigen</h3>
       <div class="space-y-4">
         <div>
-            <label class="text-[10px] text-gray-500 font-bold uppercase ml-1">Dein Name (Pflicht)</label>
-            <input id="c_name" type="text" oninput="checkForm()" class="w-full bg-gray-800 border border-gray-700 p-3 rounded-xl focus:border-green-500 outline-none transition-all" placeholder="Eintragen...">
+            <label class="text-[10px] text-gray-500 font-bold uppercase ml-1">Name (Pflicht)</label>
+            <input id="c_name" type="text" oninput="checkForm()" class="w-full bg-gray-800 border border-gray-700 p-3 rounded-xl focus:border-green-500 outline-none" placeholder="Dein Name">
         </div>
         <div>
             <label class="text-[10px] text-gray-500 font-bold uppercase ml-1">Nachricht (Optional)</label>
-            <input id="c_time" type="text" class="w-full bg-gray-800 border border-gray-700 p-3 rounded-xl focus:border-indigo-500 outline-none transition-all" placeholder="z.B. Abholung um 18 Uhr">
+            <input id="c_msg" type="text" class="w-full bg-gray-800 border border-gray-700 p-3 rounded-xl focus:border-indigo-500 outline-none" placeholder="Deine Nachricht...">
         </div>
-        <button id="finalOrderBtn" onclick="orderWhatsApp()" disabled class="w-full bg-green-600 p-4 rounded-xl font-bold opacity-30 shadow-lg transition-all">An WhatsApp senden</button>
+        <button id="finalOrderBtn" onclick="orderWhatsApp()" disabled class="w-full bg-green-600 p-4 rounded-xl font-bold opacity-30 transition-all shadow-lg">WhatsApp Bestellung</button>
         <button onclick="closeModals()" class="w-full text-gray-500 text-sm">Abbrechen</button>
       </div>
     </div>
@@ -141,12 +143,12 @@
 
     function renderProducts() {
       const list = document.getElementById("productList");
-      list.innerHTML = products.length ? "" : "<div class='text-center py-10 text-gray-600 text-xs uppercase font-bold tracking-widest'>Sortiment wird geladen...</div>";
+      list.innerHTML = products.length ? "" : "<div class='text-center py-10'>Lädt...</div>";
       products.forEach(p => {
         const salePrice = p.sale > 0 ? p.price * (1 - p.sale/100) : p.price;
         list.innerHTML += `
           <div class="bg-gray-900 p-4 rounded-2xl flex justify-between items-center border border-gray-800 relative">
-            ${p.sale > 0 ? `<div class="absolute top-0 left-0 bg-red-600 text-[8px] font-bold px-1.5 py-0.5 rounded-br-lg shadow-md z-10">-${p.sale}%</div>` : ''}
+            ${p.sale > 0 ? `<div class="absolute top-0 left-0 bg-red-600 text-[8px] font-bold px-1.5 py-0.5 rounded-br-lg z-10">-${p.sale}%</div>` : ''}
             <div>
               <div class="font-bold text-gray-100">${p.name}</div>
               <div class="text-sm mt-1">
@@ -154,7 +156,7 @@
                 <span class="text-gray-600 ml-2">• ${p.stock} Stk.</span>
               </div>
             </div>
-            <button onclick="addToCart('${p.id}')" class="bg-indigo-600 w-12 h-12 rounded-xl font-bold shadow-md active:scale-90 transition-transform ${p.stock <= 0 ? 'opacity-20' : ''}" ${p.stock <= 0 ? 'disabled' : ''}>+</button>
+            <button onclick="addToCart('${p.id}')" class="bg-indigo-600 w-12 h-12 rounded-xl font-bold ${p.stock <= 0 ? 'opacity-20' : ''}" ${p.stock <= 0 ? 'disabled' : ''}>+</button>
           </div>`;
       });
     }
@@ -163,36 +165,49 @@
       const tbody = document.getElementById("inventoryTable");
       tbody.innerHTML = products.map(p => `
         <tr class="border-b border-gray-800">
-          <td class="p-2"><input onchange="updateRow('${p.id}', 'name', this.value)" value="${p.name}" class="bg-transparent outline-none w-24"></td>
-          <td class="p-2"><input type="number" onchange="updateRow('${p.id}', 'stock', this.value)" value="${p.stock}" class="bg-transparent outline-none w-12 text-indigo-400 font-bold"></td>
-          <td class="p-2"><input type="number" step="0.01" onchange="updateRow('${p.id}', 'price', this.value)" value="${p.price}" class="bg-transparent outline-none w-14 text-green-400"></td>
-          <td class="p-2"><input type="number" onchange="updateRow('${p.id}', 'sale', this.value)" value="${p.sale || 0}" class="bg-transparent outline-none w-10 text-red-400"></td>
-          <td class="p-2"><button onclick="deleteProduct('${p.id}')" class="text-red-500 font-bold opacity-50 hover:opacity-100">✕</button></td>
+          <td class="p-2"><input onchange="updateRow('${p.id}', 'name', this.value)" value="${p.name}" class="bg-transparent outline-none w-20"></td>
+          <td class="p-2 flex items-center gap-1">
+            <input type="number" onchange="updateRow('${p.id}', 'stock', this.value)" value="${p.stock}" class="bg-transparent outline-none w-8 text-indigo-400 font-bold">
+            <input placeholder="Notiz" onchange="updateRow('${p.id}', 'n_stock', this.value)" value="${p.n_stock || ''}" class="note-input">
+          </td>
+          <td class="p-2">
+            <div class="flex items-center gap-1">
+                <input type="number" step="0.01" onchange="updateRow('${p.id}', 'price', this.value)" value="${p.price}" class="bg-transparent outline-none w-12 text-green-400">
+                <input placeholder="Notiz" onchange="updateRow('${p.id}', 'n_price', this.value)" value="${p.n_price || ''}" class="note-input">
+            </div>
+          </td>
+          <td class="p-2">
+            <div class="flex items-center gap-1">
+                <input type="number" onchange="updateRow('${p.id}', 'sale', this.value)" value="${p.sale || 0}" class="bg-transparent outline-none w-8 text-red-400">
+                <input placeholder="Notiz" onchange="updateRow('${p.id}', 'n_sale', this.value)" value="${p.n_sale || ''}" class="note-input">
+            </div>
+          </td>
+          <td class="p-2"><button onclick="deleteProduct('${p.id}')" class="text-red-500 opacity-50 hover:opacity-100">✕</button></td>
         </tr>
       `).join('');
     }
 
     function updateRow(id, field, value) {
-        let val = (field === 'name') ? value : parseFloat(value);
+        let val = (field === 'name' || field.startsWith('n_')) ? value : parseFloat(value);
         db.ref('products/' + id).update({ [field]: val });
     }
 
     function renderOrders(orders) {
       const list = document.getElementById("orderManagerList");
-      if(!orders) { list.innerHTML = "<div class='text-gray-600 text-xs'>Keine Bestellungen vorhanden.</div>"; return; }
+      if(!orders) { list.innerHTML = "Keine Bestellungen."; return; }
       list.innerHTML = Object.keys(orders).reverse().map(k => {
         const o = orders[k];
         return `
           <div class="bg-gray-800 p-3 rounded-xl flex items-center gap-3 ${o.done ? 'opacity-30' : ''} border border-gray-700">
-            <input type="checkbox" ${o.done ? 'checked' : ''} onchange="toggleOrder('${k}', this.checked)" class="w-5 h-5 accent-indigo-500">
+            <input type="checkbox" ${o.done ? 'checked' : ''} onchange="toggleOrder('${k}', this.checked)" class="w-4 h-4 accent-indigo-500">
             <div class="flex-1">
-                <div class="text-[10px] text-gray-500">${o.date}</div>
-                <div class="font-bold text-sm text-gray-100">${o.customer}</div>
-                <div class="text-[10px] text-indigo-400 italic">${o.time ? 'Info: ' + o.time : 'Keine Zusatzinfo'}</div>
+                <div class="text-[9px] text-gray-500">${o.date}</div>
+                <div class="font-bold text-xs text-gray-100">${o.customer}</div>
+                ${o.time ? `<div class="text-[9px] text-indigo-300 italic">"${o.time}"</div>` : ''}
                 <div class="text-[9px] text-gray-400">${o.items.map(i => i.name).join(", ")}</div>
             </div>
-            <div class="font-bold text-green-400 text-sm">${o.total.toFixed(2)}€</div>
-            <button onclick="deleteOrder('${k}')" class="text-gray-600 hover:text-red-400 text-xs ml-2">🗑️</button>
+            <div class="font-bold text-green-400 text-xs">${o.total.toFixed(2)}€</div>
+            <button onclick="deleteOrder('${k}')" class="text-gray-600 hover:text-red-400 ml-2">🗑️</button>
           </div>
         `;
       }).join('');
@@ -231,32 +246,12 @@
 
     async function orderWhatsApp() {
       const name = document.getElementById("c_name").value.trim();
-      const info = document.getElementById("c_time").value.trim(); // Jetzt optional
+      const msgUser = document.getElementById("c_msg").value.trim();
       const total = cart.reduce((s, i) => s + (i.price * i.qty), 0) * activeMultiplier;
-      
-      // Lagerbestand in DB aktualisieren
-      for (const i of cart) { 
-        const p = products.find(x => x.id === i.id); 
-        await db.ref('products/' + i.id).update({ stock: p.stock }); 
-      }
-      
-      // Bestellung in DB speichern
-      await db.ref('orders').push({ 
-        customer: name, 
-        time: info || "", 
-        items: cart, 
-        total: total, 
-        date: new Date().toLocaleString(), 
-        done: false 
-      });
-
-      // WhatsApp Nachricht bauen
-      let msg = `Bestellung von *${name}*:%0A` + 
-                (info ? `Info: _${info}_%0A` : `Keine Nachricht hinterlassen%0A`) + 
-                cart.map(i => `- ${i.qty}x ${i.name}`).join("%0A") + 
-                `%0AGesamt: ${total.toFixed(2)} €`;
-      
-      window.open(`https://wa.me/?text=${msg}`, "_blank");
+      for (const i of cart) { const p = products.find(x => x.id === i.id); await db.ref('products/' + i.id).update({ stock: p.stock }); }
+      await db.ref('orders').push({ customer: name, time: msgUser, items: cart, total: total, date: new Date().toLocaleString(), done: false });
+      let text = `Bestellung von *${name}*:%0A` + (msgUser ? `Nachricht: _${msgUser}_%0A` : "") + cart.map(i => `- ${i.qty}x ${i.name}`).join("%0A") + `%0AGesamt: ${total.toFixed(2)} €`;
+      window.open(`https://wa.me/?text=${text}`, "_blank");
       cart = []; closeModals(); renderCart();
     }
 
@@ -273,30 +268,15 @@
         const value = parseInt(document.getElementById("newCodeValue").value); 
         if (code && value) { await db.ref('codes').push({ code, value }); document.getElementById("newCodeName").value=""; document.getElementById("newCodeValue").value=""; } 
     }
-    
-    function renderCodes() {
-      document.getElementById("codeList").innerHTML = globalCodes.map(c => `<div class="flex justify-between items-center bg-gray-800 p-2 rounded-lg text-sm mb-1"><span><b>${c.code}</b> (-${c.value}%)</span><button onclick="db.ref('codes/${c.id}').remove()" class="text-red-500 px-2 font-bold">X</button></div>`).join("");
-    }
-
+    function renderCodes() { document.getElementById("codeList").innerHTML = globalCodes.map(c => `<div class="flex justify-between items-center bg-gray-800 p-2 rounded-lg text-sm mb-1"><span><b>${c.code}</b> (-${c.value}%)</span><button onclick="db.ref('codes/${c.id}').remove()" class="text-red-500 px-2 font-bold">X</button></div>`).join(""); }
     function clearCart() { cart.forEach(i => { const p = products.find(x => x.id === i.id); if(p) p.stock += i.qty; }); cart = []; renderProducts(); renderCart(); }
     function openModal(id) { closeModals(); document.getElementById(id).classList.replace("modal-hidden", "modal-visible"); }
     function closeModals() { document.querySelectorAll('.fixed').forEach(m => m.classList.replace("modal-visible", "modal-hidden")); }
-    
-    function openCheckout() { 
-        if (cart.length) { 
-            document.getElementById("c_name").value=""; 
-            document.getElementById("c_time").value=""; 
-            checkForm(); 
-            openModal('checkoutModal'); 
-        } 
-    }
-    
+    function openCheckout() { if (cart.length) { document.getElementById("c_name").value=""; document.getElementById("c_msg").value=""; checkForm(); openModal('checkoutModal'); } }
     function checkForm() { 
       const btn = document.getElementById("finalOrderBtn");
-      // Nur Name muss ausgefüllt sein (> 1 Zeichen)
       const ok = document.getElementById("c_name").value.trim().length > 1;
-      btn.disabled = !ok; 
-      btn.classList.toggle("opacity-30", !ok);
+      btn.disabled = !ok; btn.classList.toggle("opacity-30", !ok);
     }
   </script>
 </body>
