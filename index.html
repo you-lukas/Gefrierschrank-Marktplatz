@@ -14,18 +14,19 @@
     ::-webkit-scrollbar { width: 6px; }
     ::-webkit-scrollbar-thumb { background: #4f46e5; border-radius: 10px; }
     input[type="number"]::-webkit-inner-spin-button { display: none; }
-    .note-input { background: #1f2937 !important; border: 1px solid #374151 !important; font-size: 10px !important; padding: 2px 6px !important; border-radius: 6px !important; color: #f3f4f6 !important; width: 80px !important; outline: none !important; }
+    .note-input { background: #1f2937 !important; border: 1px solid #374151 !important; font-size: 10px !important; padding: 2px 6px !important; border-radius: 6px !important; color: #9ca3af !important; width: 70px !important; outline: none !important; }
+    .admin-val-input { background: transparent; border: none; outline: none; font-weight: bold; width: 45px; }
     .btn-plus { width: 48px !important; height: 48px !important; min-width: 48px; min-height: 48px; }
-    table { border-collapse: separate; border-spacing: 0 4px; }
     .pack-list { font-weight: bold; line-height: 1.4; color: #e5e7eb; }
-    .pack-item { display: block; border-bottom: 1px solid rgba(255,255,255,0.05); padding: 2px 0; }
+    .pack-item { display: block; border-bottom: 1px solid rgba(255,255,255,0.05); padding: 4px 0; }
+    .stock-change { font-size: 9px; color: #9ca3af; font-weight: normal; display: block; margin-top: 1px; }
   </style>
 </head>
 <body class="bg-gray-950 text-gray-100 min-h-screen font-sans">
 
   <div class="max-w-md mx-auto p-4 pb-28">
     <h1 class="text-2xl font-bold mb-6 text-center text-indigo-400">❄️ Gefrierschrank Marktplatz</h1>
-    <div id="productList" class="space-y-3">Verbindung...</div>
+    <div id="productList" class="space-y-3">Sortiment wird geladen...</div>
 
     <div class="mt-6 bg-gray-900 p-5 rounded-2xl shadow-xl border border-gray-800">
       <h2 class="text-lg font-semibold mb-3 flex justify-between">🛒 Warenkorb <button onclick="clearCart()" class="text-xs text-red-400 underline">Leeren</button></h2>
@@ -75,14 +76,14 @@
         <div class="flex justify-between items-center mb-6 border-b border-gray-800 pb-4">
             <h2 class="text-2xl font-black text-green-500 uppercase">Packliste</h2>
             <div class="flex gap-2">
-                <button onclick="resetOrders()" class="bg-red-900/30 text-red-500 text-[10px] font-black px-4 py-2 rounded-lg border border-red-500/30 hover:bg-red-600 hover:text-white transition-all">RESET ALL</button>
+                <button onclick="resetOrders()" class="bg-red-900/30 text-red-500 text-[10px] font-black px-4 py-2 rounded-lg border border-red-500/30 hover:bg-red-600">RESET ALL</button>
                 <button onclick="openModal('managerModal')" class="bg-gray-800 text-white text-[10px] font-black px-4 py-2 rounded-lg border border-gray-700">ZURÜCK</button>
             </div>
         </div>
         <div class="overflow-auto flex-1 bg-black/20 rounded-2xl border border-gray-800">
             <table class="w-full text-left text-[11px]">
                 <thead class="bg-gray-800 text-gray-400 uppercase text-[9px] tracking-widest sticky top-0">
-                    <tr><th class="p-4 w-12 text-center">✔</th><th class="p-4">Datum</th><th class="p-4">Kunde</th><th class="p-4">Produkte</th><th class="p-4">Nachricht</th><th class="p-4">Summe</th><th class="p-4"></th></tr>
+                    <tr><th class="p-4 w-12 text-center">✔</th><th class="p-4">Datum</th><th class="p-4">Kunde</th><th class="p-4">Produkte (Abzug-Info)</th><th class="p-4">Nachricht</th><th class="p-4">Summe</th><th class="p-4"></th></tr>
                 </thead>
                 <tbody id="orderTableBody" class="divide-y divide-gray-800/50"></tbody>
             </table>
@@ -91,12 +92,12 @@
   </div>
 
   <div id="checkoutModal" class="fixed inset-0 bg-black/90 flex items-center justify-center p-4 modal-hidden z-[100]">
-    <div class="bg-gray-900 border border-gray-700 p-6 rounded-2xl w-full max-w-sm shadow-2xl">
-      <h3 class="text-xl font-bold mb-4 text-green-400 uppercase text-center font-black">Name eingeben</h3>
+    <div class="bg-gray-900 border border-gray-700 p-6 rounded-2xl w-full max-w-sm shadow-2xl text-center">
+      <h3 class="text-xl font-bold mb-4 text-green-400 uppercase font-black">Bestätigen</h3>
       <div class="space-y-4">
         <input id="c_name" type="text" oninput="checkForm()" class="w-full bg-gray-800 border border-gray-700 p-4 rounded-2xl focus:border-green-500 outline-none text-white" placeholder="Dein Name">
         <input id="c_msg" type="text" class="w-full bg-gray-800 border border-gray-700 p-4 rounded-2xl focus:border-indigo-500 outline-none text-white" placeholder="Info (Optional)">
-        <button id="finalOrderBtn" onclick="orderWhatsApp()" disabled class="w-full bg-green-600 p-4 rounded-2xl font-bold opacity-30 shadow-lg text-lg text-white">ZUM WHATSAPP CHAT</button>
+        <button id="finalOrderBtn" onclick="orderWhatsApp()" disabled class="w-full bg-green-600 p-4 rounded-2xl font-bold opacity-30 text-lg text-white">ZUM WHATSAPP CHAT</button>
         <button onclick="closeModals()" class="w-full text-gray-500 text-xs font-bold uppercase mt-2">Abbrechen</button>
       </div>
     </div>
@@ -117,7 +118,6 @@
     const db = firebase.database();
     let products = [], cart = [], globalCodes = [], activeMultiplier = 1;
 
-    // --- LIVE SYNC AUS DER CLOUD ---
     db.ref('products').on('value', s => { 
       const data = s.val();
       products = data ? Object.keys(data).map(k => ({id:k, ...data[k]})) : []; 
@@ -128,7 +128,6 @@
     db.ref('codes').on('value', s => { 
       const data = s.val();
       globalCodes = data ? Object.keys(data).map(k => ({id:k, ...data[k]})) : []; 
-      renderCodes(); 
     });
 
     db.ref('orders').on('value', s => { updateOrderTable(s.val()); });
@@ -137,10 +136,8 @@
       const list = document.getElementById("productList");
       list.innerHTML = "";
       products.forEach(p => {
-        // Berechne den virtuellen Lagerstand (Echter Lagerstand minus das, was im Warenkorb liegt)
         const itemInCart = cart.find(i => i.id === p.id);
         const virtualStock = p.stock - (itemInCart ? itemInCart.qty : 0);
-        
         const salePrice = p.sale > 0 ? p.price * (1 - p.sale/100) : p.price;
         list.innerHTML += `
           <div class="bg-gray-900 p-4 rounded-2xl flex justify-between items-center border border-gray-800 relative">
@@ -149,7 +146,7 @@
               <div class="font-bold text-gray-100">${p.name}</div>
               <div class="text-sm mt-1">
                 <span class="${p.sale > 0 ? 'text-red-400' : 'text-indigo-400'} font-bold">${salePrice.toFixed(2)}€</span>
-                <span class="text-gray-600 ml-2 text-xs">• ${virtualStock} Stk.</span>
+                <span class="text-gray-600 ml-2 text-xs">• ${virtualStock <= 0 ? 'Ausverkauft' : virtualStock + ' Stk.'}</span>
               </div>
             </div>
             <button onclick="addToCart('${p.id}')" class="bg-indigo-600 btn-plus rounded-xl font-bold flex items-center justify-center text-xl shadow-md ${virtualStock <= 0 ? 'opacity-20' : 'active:scale-95'}" ${virtualStock <= 0 ? 'disabled' : ''}>+</button>
@@ -157,23 +154,33 @@
       });
     }
 
-    function addToCart(id) {
-      const p = products.find(x => x.id === id);
-      const item = cart.find(i => i.id === id);
-      const inCart = item ? item.qty : 0;
-
-      if (inCart < p.stock) {
-          const price = p.sale > 0 ? p.price * (1 - p.sale/100) : p.price;
-          if (item) item.qty++; else cart.push({ id, name: p.name, price, qty: 1 });
-          renderProducts(); // Aktualisiert die Anzeige des "Lagerstands" sofort
-          renderCart();
-      }
-    }
-
-    function clearCart() {
-      cart = [];
-      renderProducts(); // Stellt die Zahlen sofort wieder auf den Cloud-Stand
-      renderCart();
+    function renderInventory() {
+      const tbody = document.getElementById("inventoryTable");
+      if(!tbody) return;
+      tbody.innerHTML = products.map(p => `
+        <tr class="border-b border-gray-800/30">
+          <td class="p-2"><input onchange="updateRow('${p.id}', 'name', this.value)" value="${p.name}" class="bg-transparent font-bold outline-none w-24"></td>
+          <td class="p-2">
+            <div class="flex items-center gap-1">
+              <input type="number" onchange="updateRow('${p.id}', 'stock', this.value)" value="${p.stock}" class="admin-val-input text-indigo-400">
+              <input placeholder="Notiz" onchange="updateRow('${p.id}', 'n_stock', this.value)" value="${p.n_stock || ''}" class="note-input">
+            </div>
+          </td>
+          <td class="p-2">
+            <div class="flex items-center gap-1">
+              <input type="number" step="0.01" onchange="updateRow('${p.id}', 'price', this.value)" value="${p.price}" class="admin-val-input text-green-400">
+              <input placeholder="Notiz" onchange="updateRow('${p.id}', 'n_price', this.value)" value="${p.n_price || ''}" class="note-input">
+            </div>
+          </td>
+          <td class="p-2">
+            <div class="flex items-center gap-1">
+              <input type="number" onchange="updateRow('${p.id}', 'sale', this.value)" value="${p.sale || 0}" class="admin-val-input text-red-400">
+              <input placeholder="Notiz" onchange="updateRow('${p.id}', 'n_sale', this.value)" value="${p.n_sale || ''}" class="note-input">
+            </div>
+          </td>
+          <td class="p-2"><button onclick="deleteProduct('${p.id}')" class="text-red-500">✕</button></td>
+        </tr>
+      `).join('');
     }
 
     async function orderWhatsApp() {
@@ -181,15 +188,32 @@
       const msgUser = document.getElementById("c_msg").value.trim();
       const total = parseFloat(document.getElementById("totalPrice").textContent);
       
-      // 1. Definitiver Abzug in der Cloud
+      const orderItems = [];
       for (const item of cart) {
           const p = products.find(x => x.id === item.id);
-          if (p) await db.ref('products/' + item.id).update({ stock: Math.max(0, p.stock - item.qty) });
+          if (p) {
+              const oldStock = p.stock;
+              const newStock = Math.max(0, p.stock - item.qty);
+              orderItems.push({ 
+                name: i.name, qty: i.qty, 
+                oldS: oldStock, 
+                newS: newStock === 0 ? "Ausverkauft" : newStock 
+              });
+              await db.ref('products/' + item.id).update({ stock: newStock });
+          }
       }
 
-      // 2. Bestellung in die Liste
       await db.ref('orders').push({ 
-        customer: name, time: msgUser, items: cart.map(i => ({ name: i.name, qty: i.qty })), 
+        customer: name, time: msgUser, 
+        items: cart.map(item => {
+            const p = products.find(x => x.id === item.id);
+            return { 
+                name: item.name, 
+                qty: item.qty, 
+                before: p.stock, 
+                after: (p.stock - item.qty) <= 0 ? "Ausverkauft" : (p.stock - item.qty)
+            };
+        }), 
         total: total, date: new Date().toLocaleString('de-DE'), done: false 
       });
 
@@ -199,39 +223,6 @@
       cart = []; closeModals(); renderCart();
     }
 
-    // --- RESTLICHE FUNKTIONEN (IDENTISCH) ---
-    function renderInventory() {
-      const tbody = document.getElementById("inventoryTable");
-      if(!tbody) return;
-      tbody.innerHTML = products.map(p => `
-        <tr class="border-b border-gray-800/30">
-          <td class="p-3 font-bold text-gray-300">${p.name}</td>
-          <td class="p-3">
-            <div class="flex items-center gap-2">
-              <span class="text-indigo-400 font-black w-6">${p.stock}</span>
-              <input type="number" onchange="updateRow('${p.id}', 'stock', this.value)" placeholder="+" class="bg-gray-800 border border-gray-700 rounded w-10 text-[10px] text-white">
-            </div>
-          </td>
-          <td class="p-3"><input type="number" step="0.01" onchange="updateRow('${p.id}', 'price', this.value)" value="${p.price}" class="bg-transparent w-10 text-green-400 font-bold outline-none"></td>
-          <td class="p-3"><input type="number" onchange="updateRow('${p.id}', 'sale', this.value)" value="${p.sale || 0}" class="bg-transparent w-8 text-red-400 font-bold outline-none"></td>
-          <td class="p-3"><button onclick="deleteProduct('${p.id}')" class="text-red-500">✕</button></td>
-        </tr>
-      `).join('');
-    }
-
-    function renderCart() {
-      const total = cart.reduce((s, i) => s + (i.price * i.qty), 0) * activeMultiplier;
-      document.getElementById("cartItems").innerHTML = cart.map(i => `<div class="flex justify-between"><span>${i.qty}x ${i.name}</span><span>${(i.price * i.qty).toFixed(2)} €</span></div>`).join("") || "Warenkorb leer";
-      document.getElementById("totalPrice").textContent = total.toFixed(2);
-    }
-
-    function checkForm() { 
-      const name = document.getElementById("c_name").value.trim();
-      const btn = document.getElementById("finalOrderBtn");
-      btn.disabled = name.length <= 1;
-      btn.classList.toggle("opacity-30", name.length <= 1);
-    }
-
     function updateOrderTable(orders) {
       const tbody = document.getElementById("orderTableBody");
       if(!tbody || !orders) return;
@@ -239,11 +230,15 @@
       document.getElementById("openOrderBadge").innerText = keys.filter(k => !orders[k].done).length;
       tbody.innerHTML = keys.map(k => {
         const o = orders[k];
-        const itemsHtml = o.items ? o.items.map(i => `<span class="pack-item">📦 ${i.qty}x ${i.name}</span>`).join("") : "";
+        const itemsHtml = o.items ? o.items.map(i => `
+          <span class="pack-item">
+            📦 ${i.qty}x ${i.name}
+            <span class="stock-change">Lager: ${i.before} ➔ ${i.after}</span>
+          </span>`).join("") : "";
         return `
           <tr class="${o.done ? 'opacity-20 grayscale' : 'bg-gray-800/40'} border-b border-gray-800/20">
             <td class="p-4 text-center"><input type="checkbox" ${o.done ? 'checked' : ''} onchange="toggleOrder('${k}', this.checked)" class="w-6 h-6"></td>
-            <td class="p-4 text-[10px] text-gray-500">${o.date || ''}</td>
+            <td class="p-4 text-[10px] text-gray-500 whitespace-nowrap">${o.date || ''}</td>
             <td class="p-4 font-black text-white">${o.customer || ''}</td>
             <td class="p-4"><div class="pack-list">${itemsHtml}</div></td>
             <td class="p-4 italic text-indigo-300 text-[10px]">${o.time || '-'}</td>
@@ -253,7 +248,28 @@
       }).join('');
     }
 
-    function updateRow(id, field, value) { let val = (field === 'name') ? value : parseFloat(value); db.ref('products/' + id).update({ [field]: val }); }
+    function addToCart(id) {
+      const p = products.find(x => x.id === id);
+      const item = cart.find(i => i.id === id);
+      const inCart = item ? item.qty : 0;
+      if (inCart < p.stock) {
+          const price = p.sale > 0 ? p.price * (1 - p.sale/100) : p.price;
+          if (item) item.qty++; else cart.push({ id, name: p.name, price, qty: 1 });
+          renderProducts(); renderCart();
+      }
+    }
+    function renderCart() {
+      const total = cart.reduce((s, i) => s + (i.price * i.qty), 0) * activeMultiplier;
+      document.getElementById("cartItems").innerHTML = cart.map(i => `<div class="flex justify-between"><span>${i.qty}x ${i.name}</span><span>${(i.price * i.qty).toFixed(2)} €</span></div>`).join("") || "Warenkorb leer";
+      document.getElementById("totalPrice").textContent = total.toFixed(2);
+    }
+    function clearCart() { cart = []; renderProducts(); renderCart(); }
+    function checkForm() { 
+      const name = document.getElementById("c_name").value.trim();
+      const btn = document.getElementById("finalOrderBtn");
+      btn.disabled = name.length <= 1; btn.classList.toggle("opacity-30", name.length <= 1);
+    }
+    function updateRow(id, field, value) { let val = (field === 'name' || field.startsWith('n_')) ? value : parseFloat(value); db.ref('products/' + id).update({ [field]: val }); }
     function toggleOrder(id, done) { db.ref('orders/' + id).update({ done }); }
     function deleteOrder(id) { if(confirm("Löschen?")) db.ref('orders/' + id).remove(); }
     function resetOrders() { if(confirm("ALLES LÖSCHEN?")) db.ref('orders').remove(); }
@@ -267,15 +283,8 @@
     function applyGlobalCode() {
       const val = document.getElementById("discountInput").value.trim().toUpperCase();
       const c = globalCodes.find(x => x.code === val);
-      activeMultiplier = c ? (1 - c.value/100) : 1;
-      renderCart();
+      activeMultiplier = c ? (1 - c.value/100) : 1; renderCart();
     }
-    async function saveNewCode() { 
-        const code = document.getElementById("newCodeName").value.trim().toUpperCase(); 
-        const value = parseInt(document.getElementById("newCodeValue").value); 
-        if (code && value) { await db.ref('codes').push({ code, value }); document.getElementById("newCodeName").value=""; } 
-    }
-    function renderCodes() { document.getElementById("codeList").innerHTML = globalCodes.map(c => `<div class="flex justify-between items-center bg-gray-800 p-2 rounded-lg text-sm mb-1"><span><b>${c.code}</b></span><button onclick="db.ref('codes/${c.id}').remove()">X</button></div>`).join(""); }
     function openModal(id) { closeModals(); document.getElementById(id).classList.replace("modal-hidden", "modal-visible"); }
     function closeModals() { document.querySelectorAll('.fixed').forEach(m => m.classList.replace("modal-visible", "modal-hidden")); }
     function openCheckout() { if (cart.length) { openModal('checkoutModal'); } }
