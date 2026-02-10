@@ -13,7 +13,6 @@
     .modal-visible { visibility: visible; opacity: 1; pointer-events: auto; transition: opacity 0.3s ease; }
     ::-webkit-scrollbar { width: 5px; }
     ::-webkit-scrollbar-thumb { background: #374151; border-radius: 10px; }
-    input[type="number"]::-webkit-inner-spin-button { display: none; }
   </style>
 </head>
 <body class="bg-gray-950 text-gray-100 min-h-screen font-sans">
@@ -44,38 +43,37 @@
     </div>
   </div>
 
-  <div id="managerModal" class="fixed inset-0 bg-black/95 modal-hidden z-[70] flex flex-col p-4 overflow-hidden">
-    <div class="max-w-4xl mx-auto w-full bg-gray-900 border border-gray-700 rounded-3xl p-6 flex flex-col max-h-full">
-      <div class="flex justify-between items-center mb-6">
-        <h2 class="text-xl font-bold text-indigo-400">Inventory & Orders</h2>
-        <button onclick="closeModals()" class="text-gray-500 text-xs font-bold border border-gray-800 px-3 py-1 rounded-lg">SCHLIESSEN</button>
+  <div id="adminMenuModal" class="fixed inset-0 bg-black/95 flex items-center justify-center p-4 modal-hidden z-[60]">
+    <div class="bg-gray-900 border border-gray-700 p-6 rounded-2xl w-full max-w-sm">
+      <h3 class="text-xl font-bold mb-6 text-indigo-400 uppercase text-center">Verwaltung</h3>
+      <div class="grid gap-3">
+        <button onclick="closeModals(); openModal('adminModal')" class="w-full bg-gray-800 p-4 rounded-xl font-bold text-sm text-left border border-gray-700 flex justify-between">➕ Produkte verwalten <span>→</span></button>
+        <button onclick="closeModals(); openModal('codeModal')" class="w-full bg-gray-800 p-4 rounded-xl font-bold text-sm text-left border border-gray-700 flex justify-between">🎟️ Rabattcodes <span>→</span></button>
+        <button onclick="closeModals(); showHistory()" class="w-full bg-gray-800 p-4 rounded-xl font-bold text-sm text-left border border-gray-700 flex justify-between">📜 Bestellhistorie <span>→</span></button>
       </div>
-
-      <div class="overflow-x-auto mb-6 border-b border-gray-800">
-        <table class="w-full text-left text-xs mb-4">
-          <thead class="text-gray-500 uppercase">
-            <tr>
-              <th class="p-2">Produkt</th>
-              <th class="p-2">Lager</th>
-              <th class="p-2">Preis (€)</th>
-              <th class="p-2">Sale %</th>
-              <th class="p-2"></th>
-            </tr>
-          </thead>
-          <tbody id="inventoryTable"></tbody>
-        </table>
-        <div class="flex gap-2 mb-4">
-            <button onclick="openProductAdmin()" class="bg-indigo-600 text-[10px] font-bold px-4 py-2 rounded-lg">+ NEUES PRODUKT</button>
-            <button onclick="openModal('codeModal')" class="bg-gray-800 text-[10px] font-bold px-4 py-2 rounded-lg">🎟️ CODES</button>
-        </div>
-      </div>
-
-      <h3 class="font-bold text-green-500 mb-2 uppercase text-xs tracking-widest">Bestellungen</h3>
-      <div id="orderManagerList" class="overflow-y-auto space-y-2 flex-1"></div>
+      <button onclick="closeModals()" class="w-full mt-6 text-gray-500 text-xs uppercase font-black">Schließen</button>
     </div>
   </div>
 
-  <div id="codeModal" class="fixed inset-0 bg-black/90 flex items-center justify-center p-4 modal-hidden z-[80]">
+  <div id="checkoutModal" class="fixed inset-0 bg-black/90 flex items-center justify-center p-4 modal-hidden z-50">
+    <div class="bg-gray-900 border border-gray-700 p-6 rounded-2xl w-full max-w-sm">
+      <h3 class="text-xl font-bold mb-4 text-green-400">Bestellung bestätigen</h3>
+      <div class="space-y-4">
+        <div>
+          <label class="text-[10px] text-gray-400 uppercase font-bold">Dein Name</label>
+          <input id="c_name" type="text" oninput="checkForm()" class="w-full bg-gray-800 border border-gray-700 p-3 rounded-xl" placeholder="Eintragen...">
+        </div>
+        <div>
+          <label class="text-[10px] text-gray-400 uppercase font-bold">Wann holst du es ab?</label>
+          <input id="c_time" type="text" oninput="checkForm()" class="w-full bg-gray-800 border border-gray-700 p-3 rounded-xl" placeholder="z.B. heute 18:00 Uhr">
+        </div>
+        <button id="finalOrderBtn" onclick="orderWhatsApp()" disabled class="w-full bg-green-600 p-4 rounded-xl font-bold opacity-30 transition-all">An WhatsApp senden</button>
+        <button onclick="closeModals()" class="w-full text-gray-500 text-sm">Abbrechen</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="codeModal" class="fixed inset-0 bg-black/90 flex items-center justify-center p-4 modal-hidden z-50">
     <div class="bg-gray-900 border border-gray-700 p-6 rounded-2xl w-full max-w-sm">
       <h3 class="text-xl font-bold mb-4 text-indigo-400">Rabattcodes</h3>
       <div class="space-y-2 mb-4 max-h-40 overflow-y-auto" id="codeList"></div>
@@ -84,39 +82,33 @@
         <input id="newCodeValue" type="number" placeholder="Rabatt in %" class="w-full bg-gray-800 p-2 rounded-lg text-sm">
         <button onclick="saveNewCode()" class="w-full bg-indigo-600 p-2 rounded-lg font-bold">Code erstellen</button>
       </div>
-      <button onclick="openModal('managerModal')" class="w-full mt-4 text-gray-500 text-sm">Zurück zum Manager</button>
+      <button onclick="closeModals()" class="w-full mt-4 text-gray-500 text-sm">Zurück</button>
     </div>
   </div>
 
-  <div id="adminModal" class="fixed inset-0 bg-black/90 flex items-center justify-center p-4 modal-hidden z-[80]">
+  <div id="adminModal" class="fixed inset-0 bg-black/90 flex items-center justify-center p-4 modal-hidden z-50">
     <div class="bg-gray-900 border border-gray-700 p-6 rounded-2xl w-full max-w-sm">
-      <h3 class="text-xl font-bold mb-4 text-indigo-400" id="adminTitle">Produkt hinzufügen</h3>
+      <h3 class="text-xl font-bold mb-4 text-indigo-400">Produkt-Details</h3>
       <div class="space-y-3">
-        <input id="m_name" placeholder="Name" class="w-full bg-gray-800 p-2 rounded-lg outline-none">
-        <input id="m_price" type="number" step="0.01" placeholder="Preis €" class="w-full bg-gray-800 p-2 rounded-lg outline-none">
-        <input id="m_stock" type="number" placeholder="Lagerbestand" class="w-full bg-gray-800 p-2 rounded-lg outline-none">
-        <input id="m_sale" type="number" placeholder="Rabatt %" class="w-full bg-gray-800 p-2 rounded-lg outline-none">
+        <input id="m_name" placeholder="Name" class="w-full bg-gray-800 p-2 rounded-lg">
+        <input id="m_price" type="number" step="0.01" placeholder="Normalpreis €" class="w-full bg-gray-800 p-2 rounded-lg">
+        <input id="m_stock" type="number" placeholder="Bestand" class="w-full bg-gray-800 p-2 rounded-lg">
+        <div class="p-3 bg-red-950/20 border border-red-900/30 rounded-lg">
+            <label class="text-[10px] text-red-400 font-bold uppercase">Einzel-Rabatt (Banner %)</label>
+            <input id="m_sale" type="number" placeholder="0 für keinen" class="w-full bg-gray-800 p-2 rounded-lg mt-1">
+        </div>
         <button onclick="saveToFirebase()" class="w-full bg-indigo-600 p-3 rounded-xl font-bold">Speichern</button>
-        <button onclick="openModal('managerModal')" class="w-full mt-2 text-gray-500 text-xs text-center block">Abbrechen</button>
+        <button id="deleteBtn" onclick="deleteFromFirebase()" class="w-full bg-red-900/50 text-red-400 p-2 rounded-xl text-sm hidden">Produkt löschen</button>
+        <button onclick="closeModals()" class="w-full mt-2 text-gray-500 text-sm">Abbrechen</button>
       </div>
     </div>
   </div>
 
-  <div id="checkoutModal" class="fixed inset-0 bg-black/90 flex items-center justify-center p-4 modal-hidden z-50">
-    <div class="bg-gray-900 border border-gray-700 p-6 rounded-2xl w-full max-w-sm shadow-2xl">
-      <h3 class="text-xl font-bold mb-4 text-green-400">Bestellung abschließen</h3>
-      <div class="space-y-4">
-        <div>
-            <label class="text-[10px] text-gray-500 font-bold uppercase ml-1">Dein Name (Pflicht)</label>
-            <input id="c_name" type="text" oninput="checkForm()" class="w-full bg-gray-800 border border-gray-700 p-3 rounded-xl focus:border-green-500 outline-none transition-all" placeholder="Eintragen...">
-        </div>
-        <div>
-            <label class="text-[10px] text-gray-500 font-bold uppercase ml-1">Nachricht (Optional)</label>
-            <input id="c_time" type="text" class="w-full bg-gray-800 border border-gray-700 p-3 rounded-xl focus:border-indigo-500 outline-none transition-all" placeholder="z.B. Abholung um 18 Uhr">
-        </div>
-        <button id="finalOrderBtn" onclick="orderWhatsApp()" disabled class="w-full bg-green-600 p-4 rounded-xl font-bold opacity-30 shadow-lg transition-all">An WhatsApp senden</button>
-        <button onclick="closeModals()" class="w-full text-gray-500 text-sm">Abbrechen</button>
-      </div>
+  <div id="historyModal" class="fixed inset-0 bg-black/95 flex items-center justify-center p-4 modal-hidden z-50">
+    <div class="bg-gray-900 border border-gray-700 p-6 rounded-2xl w-full max-w-sm max-h-[80vh] flex flex-col">
+      <h3 class="text-xl font-bold mb-4 text-green-400">Bestellhistorie</h3>
+      <div id="historyContent" class="space-y-3 overflow-y-auto flex-1 pr-2"></div>
+      <button onclick="closeModals()" class="w-full mt-4 bg-gray-800 p-2 rounded-lg">Zurück</button>
     </div>
   </div>
 
@@ -133,86 +125,34 @@
 
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
-    let products = [], cart = [], globalCodes = [], activeMultiplier = 1;
+    let products = [], cart = [], globalCodes = [], activeMultiplier = 1, editingId = null;
 
-    db.ref('products').on('value', s => { products = s.val() ? Object.keys(s.val()).map(k => ({id:k, ...s.val()[k]})) : []; renderProducts(); renderInventory(); });
+    db.ref('products').on('value', s => { products = s.val() ? Object.keys(s.val()).map(k => ({id:k, ...s.val()[k]})) : []; renderProducts(); });
     db.ref('codes').on('value', s => { globalCodes = s.val() ? Object.keys(s.val()).map(k => ({id:k, ...s.val()[k]})) : []; renderCodes(); });
-    db.ref('orders').on('value', s => { renderOrders(s.val()); });
 
     function renderProducts() {
       const list = document.getElementById("productList");
-      list.innerHTML = products.length ? "" : "<div class='text-center py-10 text-gray-600 text-xs uppercase font-bold tracking-widest'>Sortiment wird geladen...</div>";
+      list.innerHTML = products.length ? "" : "<div class='text-center text-gray-600 py-10 text-xs'>Sortiment wird geladen...</div>";
       products.forEach(p => {
         const salePrice = p.sale > 0 ? p.price * (1 - p.sale/100) : p.price;
         list.innerHTML += `
-          <div class="bg-gray-900 p-4 rounded-2xl flex justify-between items-center border border-gray-800 relative">
+          <div class="bg-gray-900 p-4 rounded-2xl flex justify-between items-center border border-gray-800 relative overflow-hidden">
             ${p.sale > 0 ? `<div class="absolute top-0 left-0 bg-red-600 text-[8px] font-bold px-1.5 py-0.5 rounded-br-lg shadow-md z-10">-${p.sale}%</div>` : ''}
-            <div>
+            <div class="flex-1 pt-1">
               <div class="font-bold text-gray-100">${p.name}</div>
               <div class="text-sm mt-1">
-                <span class="text-indigo-400 font-bold">${salePrice.toFixed(2)}€</span>
+                ${p.sale > 0 ? `<span class="text-red-400 font-bold">${salePrice.toFixed(2)}€</span> <span class="text-gray-600 line-through text-xs">${p.price.toFixed(2)}€</span>` : `<span class="text-indigo-400">${p.price.toFixed(2)}€</span>`}
                 <span class="text-gray-600 ml-2">• ${p.stock} Stk.</span>
               </div>
             </div>
-            <button onclick="addToCart('${p.id}')" class="bg-indigo-600 w-12 h-12 rounded-xl font-bold shadow-md active:scale-90 transition-transform ${p.stock <= 0 ? 'opacity-20' : ''}" ${p.stock <= 0 ? 'disabled' : ''}>+</button>
+            <button onclick="addToCart('${p.id}')" class="bg-indigo-600 hover:bg-indigo-500 w-12 h-12 rounded-xl font-bold shadow-lg transition-transform active:scale-90 ${p.stock <= 0 ? 'opacity-20' : ''}" ${p.stock <= 0 ? 'disabled' : ''}>+</button>
           </div>`;
       });
     }
 
-    function renderInventory() {
-      const tbody = document.getElementById("inventoryTable");
-      tbody.innerHTML = products.map(p => `
-        <tr class="border-b border-gray-800">
-          <td class="p-2"><input onchange="updateRow('${p.id}', 'name', this.value)" value="${p.name}" class="bg-transparent outline-none w-24"></td>
-          <td class="p-2"><input type="number" onchange="updateRow('${p.id}', 'stock', this.value)" value="${p.stock}" class="bg-transparent outline-none w-12 text-indigo-400 font-bold"></td>
-          <td class="p-2"><input type="number" step="0.01" onchange="updateRow('${p.id}', 'price', this.value)" value="${p.price}" class="bg-transparent outline-none w-14 text-green-400"></td>
-          <td class="p-2"><input type="number" onchange="updateRow('${p.id}', 'sale', this.value)" value="${p.sale || 0}" class="bg-transparent outline-none w-10 text-red-400"></td>
-          <td class="p-2"><button onclick="deleteProduct('${p.id}')" class="text-red-500 font-bold opacity-50 hover:opacity-100">✕</button></td>
-        </tr>
-      `).join('');
-    }
-
-    function updateRow(id, field, value) {
-        let val = (field === 'name') ? value : parseFloat(value);
-        db.ref('products/' + id).update({ [field]: val });
-    }
-
-    function renderOrders(orders) {
-      const list = document.getElementById("orderManagerList");
-      if(!orders) { list.innerHTML = "<div class='text-gray-600 text-xs'>Keine Bestellungen vorhanden.</div>"; return; }
-      list.innerHTML = Object.keys(orders).reverse().map(k => {
-        const o = orders[k];
-        return `
-          <div class="bg-gray-800 p-3 rounded-xl flex items-center gap-3 ${o.done ? 'opacity-30' : ''} border border-gray-700">
-            <input type="checkbox" ${o.done ? 'checked' : ''} onchange="toggleOrder('${k}', this.checked)" class="w-5 h-5 accent-indigo-500">
-            <div class="flex-1">
-                <div class="text-[10px] text-gray-500">${o.date}</div>
-                <div class="font-bold text-sm text-gray-100">${o.customer}</div>
-                <div class="text-[10px] text-indigo-400 italic">${o.time ? 'Info: ' + o.time : 'Keine Zusatzinfo'}</div>
-                <div class="text-[9px] text-gray-400">${o.items.map(i => i.name).join(", ")}</div>
-            </div>
-            <div class="font-bold text-green-400 text-sm">${o.total.toFixed(2)}€</div>
-            <button onclick="deleteOrder('${k}')" class="text-gray-600 hover:text-red-400 text-xs ml-2">🗑️</button>
-          </div>
-        `;
-      }).join('');
-    }
-
-    function toggleOrder(id, done) { db.ref('orders/' + id).update({ done }); }
-    function deleteOrder(id) { if(confirm("Löschen?")) db.ref('orders/' + id).remove(); }
-    function deleteProduct(id) { if(confirm("Produkt löschen?")) db.ref('products/' + id).remove(); }
-    function triggerAdminMenu() { if (prompt("Passwort:") === "030199") openModal('managerModal'); }
-    function openProductAdmin() { openModal('adminModal'); }
-
-    async function saveToFirebase() {
-      const data = { 
-        name: document.getElementById("m_name").value, 
-        price: parseFloat(document.getElementById("m_price").value) || 0, 
-        stock: parseInt(document.getElementById("m_stock").value) || 0, 
-        sale: parseInt(document.getElementById("m_sale").value) || 0 
-      };
-      await db.ref('products').push(data);
-      openModal('managerModal');
+    function renderCodes() {
+      const list = document.getElementById("codeList");
+      list.innerHTML = globalCodes.map(c => `<div class="flex justify-between items-center bg-gray-800 p-2 rounded-lg text-sm mb-1"><span><b>${c.code}</b> (-${c.value}%)</span><button onclick="deleteCode('${c.id}')" class="text-red-500 font-bold px-2">X</button></div>`).join("");
     }
 
     function addToCart(id) {
@@ -229,37 +169,6 @@
       document.getElementById("totalPrice").textContent = total.toFixed(2);
     }
 
-    async function orderWhatsApp() {
-      const name = document.getElementById("c_name").value.trim();
-      const info = document.getElementById("c_time").value.trim(); // Jetzt optional
-      const total = cart.reduce((s, i) => s + (i.price * i.qty), 0) * activeMultiplier;
-      
-      // Lagerbestand in DB aktualisieren
-      for (const i of cart) { 
-        const p = products.find(x => x.id === i.id); 
-        await db.ref('products/' + i.id).update({ stock: p.stock }); 
-      }
-      
-      // Bestellung in DB speichern
-      await db.ref('orders').push({ 
-        customer: name, 
-        time: info || "", 
-        items: cart, 
-        total: total, 
-        date: new Date().toLocaleString(), 
-        done: false 
-      });
-
-      // WhatsApp Nachricht bauen
-      let msg = `Bestellung von *${name}*:%0A` + 
-                (info ? `Info: _${info}_%0A` : `Keine Nachricht hinterlassen%0A`) + 
-                cart.map(i => `- ${i.qty}x ${i.name}`).join("%0A") + 
-                `%0AGesamt: ${total.toFixed(2)} €`;
-      
-      window.open(`https://wa.me/?text=${msg}`, "_blank");
-      cart = []; closeModals(); renderCart();
-    }
-
     function applyGlobalCode() {
       const val = document.getElementById("discountInput").value.trim().toUpperCase();
       const c = globalCodes.find(x => x.code === val);
@@ -268,35 +177,49 @@
       renderCart();
     }
 
-    async function saveNewCode() { 
-        const code = document.getElementById("newCodeName").value.trim().toUpperCase(); 
-        const value = parseInt(document.getElementById("newCodeValue").value); 
-        if (code && value) { await db.ref('codes').push({ code, value }); document.getElementById("newCodeName").value=""; document.getElementById("newCodeValue").value=""; } 
-    }
-    
-    function renderCodes() {
-      document.getElementById("codeList").innerHTML = globalCodes.map(c => `<div class="flex justify-between items-center bg-gray-800 p-2 rounded-lg text-sm mb-1"><span><b>${c.code}</b> (-${c.value}%)</span><button onclick="db.ref('codes/${c.id}').remove()" class="text-red-500 px-2 font-bold">X</button></div>`).join("");
+    function clearCart() { cart.forEach(i => { const p = products.find(x => x.id === i.id); if(p) p.stock += i.qty; }); cart = []; renderProducts(); renderCart(); }
+
+    function triggerAdminMenu() {
+        if (prompt("Passwort:") === "030199") {
+            openModal('adminMenuModal');
+        }
     }
 
-    function clearCart() { cart.forEach(i => { const p = products.find(x => x.id === i.id); if(p) p.stock += i.qty; }); cart = []; renderProducts(); renderCart(); }
-    function openModal(id) { closeModals(); document.getElementById(id).classList.replace("modal-hidden", "modal-visible"); }
-    function closeModals() { document.querySelectorAll('.fixed').forEach(m => m.classList.replace("modal-visible", "modal-hidden")); }
-    
-    function openCheckout() { 
-        if (cart.length) { 
-            document.getElementById("c_name").value=""; 
-            document.getElementById("c_time").value=""; 
-            checkForm(); 
-            openModal('checkoutModal'); 
-        } 
+    async function saveToFirebase() {
+      const data = { name: document.getElementById("m_name").value, price: parseFloat(document.getElementById("m_price").value), stock: parseInt(document.getElementById("m_stock").value), sale: parseInt(document.getElementById("m_sale").value) || 0 };
+      if (editingId) await db.ref('products/' + editingId).update(data); else await db.ref('products').push(data);
+      closeModals();
     }
-    
+
+    async function saveNewCode() { const code = document.getElementById("newCodeName").value.trim().toUpperCase(); const value = parseInt(document.getElementById("newCodeValue").value); if (code && value) { await db.ref('codes').push({ code, value }); document.getElementById("newCodeName").value=""; document.getElementById("newCodeValue").value=""; } }
+    function deleteCode(id) { db.ref('codes/' + id).remove(); }
+    function deleteFromFirebase() { if(confirm("Löschen?")) { db.ref('products/' + editingId).remove(); closeModals(); } }
+
+    async function showHistory() {
+      const s = await db.ref('orders').limitToLast(20).once('value'); const orders = s.val(); const content = document.getElementById("historyContent");
+      content.innerHTML = orders ? "" : "Keine Daten.";
+      if (orders) { Object.keys(orders).reverse().forEach(k => { const o = orders[k]; content.innerHTML += `<div class="bg-gray-800 p-3 rounded-xl border-l-4 border-indigo-500 text-xs mb-2"><div class="text-gray-500">${o.date}</div><div class="font-bold">${o.customer} (${o.time || '?'})</div><div>${o.items.map(i=>i.name).join(", ")}</div><div class="text-right text-green-400 font-bold">${o.total.toFixed(2)}€</div></div>`; }); }
+      openModal('historyModal');
+    }
+
+    async function orderWhatsApp() {
+      const name = document.getElementById("c_name").value.trim();
+      const time = document.getElementById("c_time").value.trim();
+      const total = cart.reduce((s, i) => s + (i.price * i.qty), 0) * activeMultiplier;
+      for (const i of cart) { const p = products.find(x => x.id === i.id); await db.ref('products/' + i.id).update({ stock: p.stock }); }
+      await db.ref('orders').push({ customer: name, time: time, items: cart, total: total, date: new Date().toLocaleString() });
+      let msg = `Bestellung von *${name}*:%0AAbholung: *${time}*%0A` + cart.map(i => `- ${i.qty}x ${i.name}`).join("%0A") + `%0AGesamt: ${total.toFixed(2)} €`;
+      window.open(`https://wa.me/?text=${msg}`, "_blank");
+      cart = []; closeModals(); renderCart();
+    }
+
+    function openModal(id) { document.getElementById(id).classList.replace("modal-hidden", "modal-visible"); }
+    function closeModals() { document.querySelectorAll('.fixed').forEach(m => m.classList.replace("modal-visible", "modal-hidden")); }
+    function openCheckout() { if (cart.length) { document.getElementById("c_name").value=""; document.getElementById("c_time").value=""; checkForm(); openModal('checkoutModal'); } }
     function checkForm() { 
       const btn = document.getElementById("finalOrderBtn");
-      // Nur Name muss ausgefüllt sein (> 1 Zeichen)
-      const ok = document.getElementById("c_name").value.trim().length > 1;
-      btn.disabled = !ok; 
-      btn.classList.toggle("opacity-30", !ok);
+      const ok = document.getElementById("c_name").value.length > 1 && document.getElementById("c_time").value.length > 1;
+      btn.disabled = !ok; btn.classList.toggle("opacity-30", !ok);
     }
   </script>
 </body>
