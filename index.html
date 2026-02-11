@@ -15,10 +15,11 @@
     ::-webkit-scrollbar-thumb { background: #4f46e5; border-radius: 10px; }
     input[type="number"]::-webkit-inner-spin-button { display: none; }
     .btn-plus { width: 48px !important; height: 48px !important; min-width: 48px; min-height: 48px; }
-    .restock-entry { background: rgba(59, 130, 246, 0.1); border-left: 3px solid #3b82f6; }
-    #timerDisplay { display: none; }
     .note-input { background: #1f2937 !important; border: 1px solid #374151 !important; font-size: 9px !important; padding: 1px 4px !important; border-radius: 4px !important; color: #6b7280 !important; width: 60px !important; outline: none !important; }
     .admin-val-input { background: transparent; border: none; outline: none; font-weight: bold; width: 45px; color: inherit; }
+    .pack-item { display: block; border-bottom: 1px solid rgba(255,255,255,0.05); padding: 4px 0; }
+    .restock-entry { background: rgba(59, 130, 246, 0.1); border-left: 3px solid #3b82f6; }
+    #timerDisplay { display: none; }
   </style>
 </head>
 <body class="bg-gray-950 text-gray-100 min-h-screen font-sans">
@@ -35,22 +36,122 @@
           <button onclick="clearCart()" class="text-xs text-red-400 underline">Leeren</button>
         </div>
       </div>
-      
       <div id="cartItems" class="text-sm space-y-2 mb-4"></div>
-      
       <div class="flex gap-2">
         <input id="discountInput" placeholder="Rabattcode" class="flex-1 p-2 rounded-lg bg-gray-800 border border-gray-700 text-sm outline-none uppercase text-white">
         <button onclick="applyGlobalCode()" class="bg-indigo-600 px-4 rounded-lg text-sm font-bold">OK</button>
       </div>
-      
-      <div class="mt-4 pt-3 border-t border-gray-800 text-right font-bold text-xl">
-        <span id="totalPrice">0.00</span> €
-      </div>
+      <div class="mt-4 pt-3 border-t border-gray-800 text-right font-bold text-xl"><span id="totalPrice">0.00</span> €</div>
       <button onclick="openCheckout()" class="mt-4 w-full bg-green-600 hover:bg-green-500 p-3 rounded-xl font-bold">📲 Jetzt Bestellen</button>
     </div>
 
     <div class="mt-16 text-center">
       <button onclick="triggerAdminMenu()" class="text-[10px] text-gray-800 hover:text-gray-600 uppercase tracking-[0.2em] font-bold">Admin</button>
+    </div>
+  </div>
+
+  <div id="managerModal" class="fixed inset-0 bg-black/95 modal-hidden z-[70] flex flex-col p-2 overflow-hidden">
+    <div class="max-w-5xl mx-auto w-full bg-gray-900 border border-gray-700 rounded-3xl p-6 flex flex-col h-full overflow-hidden shadow-2xl">
+      <div class="flex justify-between items-center mb-6">
+        <h2 class="text-xl font-bold text-indigo-400 font-black uppercase">Inventar-Manager</h2>
+        <button onclick="closeModals()" class="text-gray-500 text-xs font-bold border border-gray-800 px-4 py-2 rounded-lg">CLOSE</button>
+      </div>
+      <div class="overflow-y-auto flex-1 mb-6 border border-gray-800 rounded-xl bg-black/20 p-2">
+        <table class="w-full text-left text-xs">
+          <thead class="text-gray-500 uppercase text-[10px] tracking-widest sticky top-0 bg-gray-900">
+            <tr><th class="p-3">Produkt</th><th class="p-3">Lager</th><th class="p-3">Preis</th><th class="p-3">Sale</th><th class="p-3"></th></tr>
+          </thead>
+          <tbody id="inventoryTable"></tbody>
+        </table>
+      </div>
+      <div class="flex flex-wrap gap-2">
+          <button onclick="openModal('adminModal')" class="bg-indigo-600 text-[10px] font-bold px-4 py-3 rounded-xl">+ NEU</button>
+          <button onclick="openModal('codeModal')" class="bg-gray-800 text-[10px] font-bold px-4 py-3 rounded-xl">🎟️ CODES</button>
+          <button onclick="openModal('orderModal')" class="bg-green-700 text-[10px] font-bold px-4 py-3 rounded-xl flex items-center gap-2">
+             📦 BESTELLUNGEN <span id="openOrderBadge" class="bg-red-600 px-2 py-0.5 rounded-full text-white">0</span>
+          </button>
+          <button onclick="openAnalytics()" class="bg-blue-600 text-[10px] font-bold px-4 py-3 rounded-xl">📈 ANALYTICS & LAGER</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="analyticsModal" class="fixed inset-0 bg-black/95 modal-hidden z-[120] flex items-center justify-center p-4">
+    <div class="bg-gray-900 border border-gray-700 p-6 rounded-3xl w-full max-w-lg shadow-2xl">
+      <h3 class="text-xl font-black mb-6 text-blue-400 uppercase text-center">Lagerverwaltung</h3>
+      <div class="grid grid-cols-2 gap-4 mb-8">
+        <div class="bg-gray-800 p-4 rounded-2xl border border-gray-700 text-center">
+          <div class="text-[10px] text-gray-400 uppercase font-bold">Lagerwert</div>
+          <div id="stat_totalValue" class="text-xl font-black text-white">0.00€</div>
+        </div>
+        <div class="bg-gray-800 p-4 rounded-2xl border border-gray-700 text-center">
+          <div class="text-[10px] text-gray-400 uppercase font-bold">Artikel</div>
+          <div id="stat_totalStock" class="text-xl font-black text-white">0</div>
+        </div>
+      </div>
+      <div class="bg-black/30 p-4 rounded-2xl border border-blue-900/30 mb-6 text-sm">
+        <h4 class="text-xs font-bold text-blue-300 uppercase mb-3">Nachfüllen</h4>
+        <select id="restock_select" class="w-full bg-gray-800 p-3 rounded-xl border border-gray-700 text-white mb-3 outline-none"></select>
+        <div class="flex gap-2">
+          <input id="restock_qty" type="number" placeholder="Menge" class="flex-1 bg-gray-800 p-3 rounded-xl border border-gray-700 text-white outline-none">
+          <button onclick="submitRestock()" class="bg-blue-600 px-6 rounded-xl font-bold">BUCHEN</button>
+        </div>
+      </div>
+      <button onclick="openModal('managerModal')" class="w-full text-gray-500 text-xs font-bold uppercase py-2">Zurück</button>
+    </div>
+  </div>
+
+  <div id="checkoutModal" class="fixed inset-0 bg-black/90 flex items-center justify-center p-4 modal-hidden z-[100]">
+    <div class="bg-gray-900 border border-gray-700 p-6 rounded-2xl w-full max-w-sm text-center shadow-2xl">
+      <h3 class="text-xl font-bold mb-4 text-green-400 uppercase font-black">Bestätigen</h3>
+      <div class="space-y-4">
+        <input id="c_name" type="text" oninput="checkForm()" class="w-full bg-gray-800 border border-gray-700 p-4 rounded-2xl text-white outline-none" placeholder="Dein Name">
+        <input id="c_msg" type="text" class="w-full bg-gray-800 border border-gray-700 p-4 rounded-2xl text-white outline-none" placeholder="Info (z.B. Zeit)">
+        <button id="finalOrderBtn" onclick="orderWhatsApp()" disabled class="w-full bg-green-600 p-4 rounded-2xl font-bold opacity-30 text-lg">ZUM WHATSAPP CHAT</button>
+        <button onclick="closeModals()" class="w-full text-gray-500 text-xs uppercase mt-2 font-bold">Abbrechen</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="codeModal" class="fixed inset-0 bg-black/90 flex items-center justify-center p-4 modal-hidden z-[80]">
+    <div class="bg-gray-900 border border-gray-700 p-6 rounded-2xl w-full max-w-sm">
+      <h3 class="text-xl font-bold mb-4 text-indigo-400 uppercase text-center">Rabatt-Codes</h3>
+      <div id="codeList" class="space-y-2 mb-4 max-h-40 overflow-y-auto"></div>
+      <div class="space-y-2 border-t border-gray-800 pt-4">
+        <input id="newCodeName" placeholder="CODE" class="w-full bg-gray-800 p-2 rounded-lg text-sm border border-gray-700 text-white uppercase outline-none">
+        <input id="newCodeValue" type="number" placeholder="%" class="w-full bg-gray-800 p-2 rounded-lg text-sm border border-gray-700 text-white outline-none">
+        <button onclick="saveNewCode()" class="w-full bg-indigo-600 p-2 rounded-lg font-bold">SPEICHERN</button>
+      </div>
+      <button onclick="openModal('managerModal')" class="w-full mt-4 text-gray-500 text-xs font-bold uppercase">Zurück</button>
+    </div>
+  </div>
+
+  <div id="orderModal" class="fixed inset-0 bg-black/98 modal-hidden z-[90] flex flex-col p-2 overflow-hidden">
+    <div class="max-w-6xl mx-auto w-full bg-gray-900 border border-gray-700 rounded-3xl p-6 flex flex-col h-full shadow-2xl overflow-hidden">
+        <div class="flex justify-between items-center mb-6">
+            <h2 class="text-2xl font-black text-green-500 uppercase">Packliste</h2>
+            <button onclick="openModal('managerModal')" class="bg-gray-800 text-white text-[10px] font-black px-4 py-2 rounded-lg">ZURÜCK</button>
+        </div>
+        <div class="overflow-auto flex-1 bg-black/20 rounded-2xl border border-gray-800">
+            <table class="w-full text-left text-[11px]">
+                <thead class="bg-gray-800 text-gray-400 uppercase text-[9px] sticky top-0">
+                    <tr><th class="p-4">✔</th><th class="p-4">Datum</th><th class="p-4">Kunde</th><th class="p-4">Details</th><th class="p-4">Summe</th><th class="p-4"></th></tr>
+                </thead>
+                <tbody id="orderTableBody"></tbody>
+            </table>
+        </div>
+    </div>
+  </div>
+
+  <div id="adminModal" class="fixed inset-0 bg-black/90 flex items-center justify-center p-4 modal-hidden z-[130]">
+    <div class="bg-gray-900 border border-gray-700 p-6 rounded-3xl w-full max-w-sm">
+      <h3 class="text-xl font-bold mb-4 text-indigo-400 uppercase text-center">Neuer Artikel</h3>
+      <div class="space-y-3">
+        <input id="m_name" placeholder="Name" class="w-full bg-gray-800 p-4 rounded-xl border border-gray-700 text-white outline-none">
+        <input id="m_price" type="number" step="0.01" placeholder="Preis €" class="w-full bg-gray-800 p-4 rounded-xl border border-gray-700 text-white outline-none">
+        <input id="m_stock" type="number" placeholder="Bestand" class="w-full bg-gray-800 p-4 rounded-xl border border-gray-700 text-white outline-none">
+        <button onclick="saveToFirebase()" class="w-full bg-indigo-600 p-4 rounded-xl font-bold">SPEICHERN</button>
+        <button onclick="openModal('managerModal')" class="w-full text-gray-500 text-xs font-bold mt-2">Abbrechen</button>
+      </div>
     </div>
   </div>
 
@@ -68,61 +169,47 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
     
-    let products = [];
-    let cart = [];
-    let globalCodes = [];
-    let activeMultiplier = 1;
-    let timerInterval = null;
-    let timeLeft = 900;
+    let products = [], cart = [], globalCodes = [], activeMultiplier = 1;
+    let timerInterval = null, timeLeft = 900;
 
-    // REALTIME LISTENER FÜR PRODUKTE
+    // REALTIME LISTENERS
     db.ref('products').on('value', s => { 
       const data = s.val();
       products = data ? Object.keys(data).map(k => ({id:k, ...data[k]})) : []; 
-      
-      // Realtime-Check für den Warenkorb:
-      validateCart(); 
-      renderProducts(); 
-      renderCart();
-      if(typeof renderInventory === "function") renderInventory();
-      if(typeof updateAnalyticsDisplay === "function") updateAnalyticsDisplay();
+      validateCart(); renderProducts(); renderInventory(); updateAnalyticsDisplay();
     });
 
-    // Validierung: Wenn Bestand global sinkt, Warenkorb anpassen
+    db.ref('codes').on('value', s => { 
+      const data = s.val();
+      globalCodes = data ? Object.keys(data).map(k => ({id:k, ...data[k]})) : []; 
+      renderCodes();
+    });
+
+    db.ref('orders').on('value', s => { updateOrderTable(s.val()); });
+
+    // WARENKORB LOGIK
     function validateCart() {
         if(cart.length === 0) return;
         let changed = false;
-        
         cart = cart.filter(item => {
             const p = products.find(x => x.id === item.id);
-            // Falls Produkt gelöscht oder Bestand 0 (durch anderen Käufer), entferne es
-            if(!p || p.stock < 0) { // <0 weil wir beim Hinzufügen abziehen
-                changed = true;
-                return false;
-            }
+            if(!p || (p.stock < 0 && !item.localAdded)) { changed = true; return false; }
             return true;
         });
-
-        if(changed) {
-            alert("Einige Artikel in deinem Warenkorb sind leider nicht mehr verfügbar.");
-            if(cart.length === 0) stopTimer();
-        }
+        if(changed) renderCart();
     }
 
     async function addToCart(id) {
       const p = products.find(x => x.id === id);
       if (p && p.stock > 0) {
-          // Sofortiger Abzug in Firebase (für alle sichtbar)
           await db.ref('products/' + id).update({ stock: p.stock - 1 });
-          
           const item = cart.find(i => i.id === id);
           if (item) item.qty++; 
           else {
               const price = p.sale > 0 ? p.price * (1 - p.sale/100) : p.price;
               cart.push({ id, name: p.name, price, qty: 1 });
           }
-          startTimer();
-          renderCart();
+          startTimer(); renderCart();
       }
     }
 
@@ -131,47 +218,30 @@
         const p = products.find(x => x.id === item.id);
         if(p) await db.ref('products/' + item.id).update({ stock: p.stock + item.qty });
       }
-      cart = [];
-      stopTimer();
-      renderCart();
+      cart = []; stopTimer(); renderCart();
     }
 
     function renderCart() {
-      const cartDiv = document.getElementById("cartItems");
-      if(!cartDiv) return;
-      
       const total = cart.reduce((s, i) => s + (i.price * i.qty), 0) * activeMultiplier;
-      cartDiv.innerHTML = cart.map(i => `
-        <div class="flex justify-between animate-fade-in">
-          <span>${i.qty}x ${i.name}</span>
-          <span>${(i.price * i.qty).toFixed(2)} €</span>
-        </div>`).join("") || "Warenkorb leer";
-      
+      document.getElementById("cartItems").innerHTML = cart.map(i => `<div class="flex justify-between"><span>${i.qty}x ${i.name}</span><span>${(i.price * i.qty).toFixed(2)} €</span></div>`).join("") || "Warenkorb leer";
       document.getElementById("totalPrice").textContent = total.toFixed(2);
-      
-      const tDisp = document.getElementById("timerDisplay");
-      if(cart.length > 0) tDisp.style.display = "block";
-      else tDisp.style.display = "none";
+      document.getElementById("timerDisplay").style.display = cart.length > 0 ? "block" : "none";
     }
 
+    // TIMER
     function startTimer() {
         if(timerInterval) return;
         timeLeft = 900;
         timerInterval = setInterval(() => {
             timeLeft--;
-            let mins = Math.floor(timeLeft / 60);
-            let secs = timeLeft % 60;
+            let mins = Math.floor(timeLeft / 60); let secs = timeLeft % 60;
             document.getElementById("timerDisplay").innerText = `${mins}:${secs < 10 ? '0' : ''}${secs}`;
             if(timeLeft <= 0) { clearCart(); alert("Zeit abgelaufen!"); }
         }, 1000);
     }
+    function stopTimer() { clearInterval(timerInterval); timerInterval = null; }
 
-    function stopTimer() {
-        clearInterval(timerInterval);
-        timerInterval = null;
-        timeLeft = 900;
-    }
-
+    // RENDER PRODUKTE
     function renderProducts() {
       const list = document.getElementById("productList");
       if(!list) return; list.innerHTML = "";
@@ -186,32 +256,109 @@
       });
     }
 
-    // WhatsApp Bestellung
+    // BESTELLEN & WHATSAPP
+    function openCheckout() { if (cart.length) openModal('checkoutModal'); }
+    function checkForm() { const n = document.getElementById("c_name").value.trim(); const b = document.getElementById("finalOrderBtn"); b.disabled = n.length <= 1; b.classList.toggle("opacity-30", n.length <= 1); }
+
     async function orderWhatsApp() {
       const name = document.getElementById("c_name").value.trim();
-      if(!name) return;
+      const msgUser = document.getElementById("c_msg").value.trim();
       const total = parseFloat(document.getElementById("totalPrice").textContent);
       let waText = `Bestellung von *${name}*:%0A%0A`;
-      
       cart.forEach(item => { waText += `• ${item.qty}x ${item.name}%0A`; });
       waText += `%0AGesamt: *${total.toFixed(2)}€*`;
+      if(msgUser) waText += `%0AInfo: ${msgUser}`;
 
-      await db.ref('orders').push({ 
-        customer: name, 
-        items: cart, 
-        total: total, 
-        date: new Date().toLocaleString('de-DE'), 
-        done: false 
-      });
-
+      await db.ref('orders').push({ customer: name, time: msgUser, items: cart, total: total, date: new Date().toLocaleString('de-DE'), done: false });
       window.open(`https://wa.me/?text=${waText}`, "_blank");
       cart = []; stopTimer(); renderCart(); closeModals();
     }
 
-    // Manager & Admin Helper (Passwort: 030199)
+    // ADMIN FUNKTIONEN
     function triggerAdminMenu() { if (prompt("PW:") === "030199") openModal('managerModal'); }
-    function openModal(id) { document.querySelectorAll('.fixed').forEach(m => m.classList.replace("modal-visible", "modal-hidden")); document.getElementById(id).classList.replace("modal-hidden", "modal-visible"); }
+    function openModal(id) { closeModals(); document.getElementById(id).classList.replace("modal-hidden", "modal-visible"); }
     function closeModals() { document.querySelectorAll('.fixed').forEach(m => m.classList.replace("modal-visible", "modal-hidden")); }
+
+    function renderInventory() {
+      const tbody = document.getElementById("inventoryTable");
+      if(!tbody) return;
+      tbody.innerHTML = products.map(p => `
+        <tr class="border-b border-gray-800/30">
+          <td class="p-2"><input onchange="updateRow('${p.id}', 'name', this.value)" value="${p.name}" class="bg-transparent font-bold outline-none w-24 text-white"></td>
+          <td class="p-2"><input type="number" onchange="updateRow('${p.id}', 'stock', this.value)" value="${p.stock}" class="admin-val-input text-indigo-400"></td>
+          <td class="p-2"><input type="number" step="0.01" onchange="updateRow('${p.id}', 'price', this.value)" value="${p.price}" class="admin-val-input text-green-400"></td>
+          <td class="p-2"><input type="number" onchange="updateRow('${p.id}', 'sale', this.value)" value="${p.sale || 0}" class="admin-val-input text-red-400"></td>
+          <td class="p-2"><button onclick="deleteProduct('${p.id}')">✕</button></td>
+        </tr>`).join('');
+    }
+
+    function openAnalytics() {
+      openModal('analyticsModal');
+      const sel = document.getElementById("restock_select");
+      sel.innerHTML = products.map(p => `<option value="${p.id}">${p.name} (${p.stock})</option>`).join("");
+    }
+
+    function updateAnalyticsDisplay() {
+        let val = 0, stk = 0;
+        products.forEach(p => { val += (p.price * p.stock); stk += p.stock; });
+        if(document.getElementById("stat_totalValue")) document.getElementById("stat_totalValue").innerText = val.toFixed(2) + "€";
+        if(document.getElementById("stat_totalStock")) document.getElementById("stat_totalStock").innerText = stk;
+    }
+
+    async function submitRestock() {
+        const id = document.getElementById("restock_select").value;
+        const qty = parseInt(document.getElementById("restock_qty").value);
+        if(!id || isNaN(qty)) return;
+        const p = products.find(x => x.id === id);
+        await db.ref('products/' + id).update({ stock: p.stock + qty });
+        await db.ref('orders').push({ customer: "📦 NACHSCHUB", isRestock: true, items: [{ name: p.name, qty: qty }], date: new Date().toLocaleString('de-DE'), done: true });
+        document.getElementById("restock_qty").value = ""; alert("Gebucht!");
+    }
+
+    function updateRow(id, field, value) { db.ref('products/' + id).update({ [field]: (field === 'name' ? value : parseFloat(value)) }); }
+    function deleteProduct(id) { if(confirm("Löschen?")) db.ref('products/' + id).remove(); }
+    function updateOrderTable(orders) {
+      const tbody = document.getElementById("orderTableBody");
+      if(!tbody || !orders) return;
+      const keys = Object.keys(orders).reverse();
+      document.getElementById("openOrderBadge").innerText = keys.filter(k => !orders[k].done).length;
+      tbody.innerHTML = keys.map(k => {
+        const o = orders[k];
+        const isR = o.isRestock;
+        return `<tr class="${o.done ? 'opacity-30' : ''} border-b border-gray-800/20">
+            <td class="p-4"><input type="checkbox" ${o.done ? 'checked' : ''} onchange="db.ref('orders/${k}').update({done: this.checked})"></td>
+            <td class="p-4 text-[9px]">${o.date}</td>
+            <td class="p-4 font-bold ${isR ? 'text-blue-400' : ''}">${o.customer}</td>
+            <td class="p-4">${o.items ? o.items.map(i => `<div>${i.qty}x ${i.name}</div>`).join("") : ""}</td>
+            <td class="p-4 text-green-400 font-bold">${o.total ? o.total.toFixed(2) + '€' : '-'}</td>
+            <td class="p-4"><button onclick="db.ref('orders/${k}').remove()">🗑️</button></td></tr>`;
+      }).join('');
+    }
+
+    function applyGlobalCode() {
+      const val = document.getElementById("discountInput").value.trim().toUpperCase();
+      const c = globalCodes.find(x => x.code === val);
+      activeMultiplier = c ? (1 - c.value/100) : 1; 
+      renderCart(); 
+      alert(c ? "Rabatt aktiviert!" : "Code ungültig");
+    }
+
+    async function saveNewCode() {
+      const n = document.getElementById("newCodeName").value.trim().toUpperCase();
+      const v = parseInt(document.getElementById("newCodeValue").value);
+      if(n && v) { await db.ref('codes').push({ code: n, value: v }); document.getElementById("newCodeName").value=""; }
+    }
+
+    function renderCodes() {
+      document.getElementById("codeList").innerHTML = globalCodes.map(c => `<div class="flex justify-between bg-gray-800 p-2 rounded mb-1"><span>${c.code} (${c.value}%)</span><button onclick="db.ref('codes/${c.id}').remove()">X</button></div>`).join("");
+    }
+
+    async function saveToFirebase() {
+      const n = document.getElementById("m_name").value;
+      const p = parseFloat(document.getElementById("m_price").value) || 0;
+      const s = parseInt(document.getElementById("m_stock").value) || 0;
+      if(n) { await db.ref('products').push({ name:n, price:p, stock:s, sale:0 }); openModal('managerModal'); }
+    }
   </script>
 </body>
 </html>
