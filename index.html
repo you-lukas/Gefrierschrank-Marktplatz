@@ -19,6 +19,7 @@
     .stock-log { font-size: 9px; color: #9ca3af; font-weight: normal; margin-left: 4px; }
     .info-text { font-size: 10px; color: #6366f1; font-style: italic; display: block; margin-top: 2px; }
     .restock-entry { background: rgba(59, 130, 246, 0.15); border-left: 4px solid #3b82f6; }
+    .promo-badge { font-size: 9px; background: #4f46e5; color: white; padding: 2px 4px; border-radius: 4px; margin-right: 5px; font-weight: bold; }
     #timerDisplay { display: none; }
   </style>
 </head>
@@ -92,6 +93,28 @@
     </div>
   </div>
 
+  <div id="codeModal" class="fixed inset-0 bg-black/90 flex items-center justify-center p-4 modal-hidden z-[80]">
+    <div class="bg-gray-900 border border-gray-700 p-6 rounded-2xl w-full max-w-sm">
+      <h3 class="text-xl font-bold mb-4 text-indigo-400 text-center uppercase">Rabatt-System</h3>
+      <div id="codeList" class="space-y-2 mb-4 max-h-48 overflow-y-auto border-b border-gray-800 pb-4"></div>
+      <div class="space-y-2">
+        <div class="grid grid-cols-2 gap-2">
+            <input id="newCodeName" placeholder="CODE" class="bg-gray-800 p-2 rounded-lg text-sm border border-gray-700 text-white uppercase outline-none">
+            <input id="newCodeValue" type="number" placeholder="Wert" class="bg-gray-800 p-2 rounded-lg text-sm border border-gray-700 text-white outline-none">
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+            <select id="newCodeType" class="bg-gray-800 p-2 rounded-lg text-xs border border-gray-700 text-white">
+                <option value="percent">Dauerhaft %</option>
+                <option value="once">Einmalig €</option>
+            </select>
+            <input id="newCodeExpiry" type="date" class="bg-gray-800 p-2 rounded-lg text-[10px] border border-gray-700 text-white">
+        </div>
+        <button onclick="saveNewCode()" class="w-full bg-indigo-600 p-2 rounded-lg font-bold text-sm">CODE AKTIVIEREN</button>
+      </div>
+      <button onclick="openModal('managerModal')" class="w-full mt-4 text-gray-500 text-[10px] font-bold uppercase">Zurück</button>
+    </div>
+  </div>
+
   <div id="adminModal" class="fixed inset-0 bg-black/90 flex items-center justify-center p-4 modal-hidden z-[130]">
     <div class="bg-gray-900 border border-gray-700 p-6 rounded-3xl w-full max-w-sm">
       <h3 class="text-xl font-bold mb-4 text-indigo-400 text-center uppercase">Neu</h3>
@@ -100,19 +123,6 @@
       <input id="m_stock" type="number" placeholder="Bestand" class="w-full bg-gray-800 p-4 rounded-xl border border-gray-700 text-white mb-3 outline-none">
       <button onclick="saveToFirebase()" class="w-full bg-indigo-600 p-4 rounded-xl font-bold">SPEICHERN</button>
       <button onclick="openModal('managerModal')" class="w-full text-gray-500 text-xs font-bold mt-2">Abbrechen</button>
-    </div>
-  </div>
-
-  <div id="codeModal" class="fixed inset-0 bg-black/90 flex items-center justify-center p-4 modal-hidden z-[80]">
-    <div class="bg-gray-900 border border-gray-700 p-6 rounded-2xl w-full max-w-sm">
-      <h3 class="text-xl font-bold mb-4 text-indigo-400 text-center uppercase">Codes</h3>
-      <div id="codeList" class="space-y-2 mb-4 max-h-40 overflow-y-auto"></div>
-      <div class="space-y-2">
-        <input id="newCodeName" placeholder="CODE" class="w-full bg-gray-800 p-2 rounded-lg text-sm border border-gray-700 text-white uppercase outline-none">
-        <input id="newCodeValue" type="number" placeholder="%" class="w-full bg-gray-800 p-2 rounded-lg text-sm border border-gray-700 text-white outline-none">
-        <button onclick="saveNewCode()" class="w-full bg-indigo-600 p-2 rounded-lg font-bold">SPEICHERN</button>
-      </div>
-      <button onclick="openModal('managerModal')" class="w-full mt-4 text-gray-500 text-xs font-bold uppercase">Zurück</button>
     </div>
   </div>
 
@@ -144,17 +154,20 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
     
-    let products = [], cart = [], globalCodes = [], activeMultiplier = 1;
+    let products = [], cart = [], globalCodes = [], activeMultiplier = 1, flatDiscount = 0, usedCodeId = null;
     let timerInterval = null, timeLeft = 900;
 
-    // LISTENERS & LOGIK
+    // LISTENERS
     db.ref('products').on('value', s => { 
         const data = s.val(); products = data ? Object.keys(data).map(k => ({id:k, ...data[k]})) : []; 
         renderProducts(); renderInventory(); updateAnalyticsDisplay();
     });
     db.ref('codes').on('value', s => { 
-      const data = s.val();
-      globalCodes = data ? Object.keys(data).map(k => ({id:k, ...data[k]})) : []; 
+      const data = s.val() || {};
+      const now = new Date().toISOString().split('T')[0];
+      globalCodes = Object.keys(data).map(k => ({id:k, ...data[k]}));
+      // Auto-Löschen abgelaufener Codes
+      globalCodes.forEach(c => { if(c.expiry && c.expiry < now) db.ref('codes/'+c.id).remove(); });
       renderCodes();
     });
     db.ref('orders').on('value', s => { updateOrderTable(s.val()); });
@@ -174,36 +187,50 @@
       }
     }
 
+    function applyGlobalCode() {
+      const val = document.getElementById("discountInput").value.trim().toUpperCase();
+      const c = globalCodes.find(x => x.code === val);
+      if(c) {
+          if(c.type === 'percent') { activeMultiplier = (1 - c.value/100); flatDiscount = 0; }
+          else { flatDiscount = c.value; activeMultiplier = 1; }
+          usedCodeId = c.id;
+          renderCart();
+          alert("Code '" + c.code + "' angewendet!");
+      } else {
+          activeMultiplier = 1; flatDiscount = 0; usedCodeId = null;
+          renderCart(); alert("Ungültiger Code");
+      }
+    }
+
     async function orderWhatsApp() {
       const name = document.getElementById("c_name").value.trim();
       const info = document.getElementById("c_msg").value.trim();
       const total = parseFloat(document.getElementById("totalPrice").textContent);
+      const isDiscounted = activeMultiplier < 1 || flatDiscount > 0;
       
       const orderItems = cart.map(i => {
           const pNow = products.find(x => x.id === i.id);
-          const log = `${i.initialStock} ➔ ${pNow ? (pNow.stock <= 0 ? 'Ausverkauft' : pNow.stock) : '?'}`;
-          return { name: i.name, qty: i.qty, log: log };
+          return { name: i.name, qty: i.qty, log: `${i.initialStock} ➔ ${pNow ? pNow.stock : '?'}` };
       });
 
+      // Einmaligen Code löschen falls verwendet
+      if(usedCodeId) {
+          const codeObj = globalCodes.find(x => x.id === usedCodeId);
+          if(codeObj && codeObj.type === 'once') await db.ref('codes/' + usedCodeId).remove();
+      }
+
       await db.ref('orders').push({ 
-          customer: name, 
-          info: info, 
-          items: orderItems, 
-          total: total, 
-          date: new Date().toLocaleString('de-DE'), 
-          done: false 
+          customer: name, info, items: orderItems, total, date: new Date().toLocaleString('de-DE'), done: false, hasPromo: isDiscounted 
       });
 
       let waText = `Bestellung von *${name}*:%0A%0A`;
       cart.forEach(i => { waText += `• ${i.qty}x ${i.name}%0A`; });
       waText += `%0AGesamt: *${total.toFixed(2)}€*`;
-      if(info) waText += `%0A%0A*Zusatz-Info:* ${info}`;
+      if(isDiscounted) waText += ` (Rabatt angewendet)`;
+      if(info) waText += `%0A%0A*Info:* ${info}`;
 
       window.open(`https://wa.me/?text=${waText}`, "_blank");
-      
-      cart = []; stopTimer(); renderCart(); closeModals();
-      document.getElementById("c_name").value = "";
-      document.getElementById("c_msg").value = "";
+      cart = []; flatDiscount = 0; activeMultiplier = 1; usedCodeId = null; stopTimer(); renderCart(); closeModals();
     }
 
     function updateOrderTable(orders) {
@@ -213,19 +240,53 @@
       document.getElementById("openOrderBadge").innerText = keys.filter(k => !orders[k].done).length;
       tbody.innerHTML = keys.map(k => {
         const o = orders[k];
-        return `<tr class="${o.done ? 'opacity-30' : ''} border-b border-gray-800/20 ${o.isRestock ? 'restock-entry' : ''}">
+        return `<tr class="${o.done ? 'opacity-30' : ''} border-b border-gray-800/20">
             <td class="p-4"><input type="checkbox" ${o.done ? 'checked' : ''} onchange="db.ref('orders/${k}').update({done: this.checked})"></td>
             <td class="p-4 text-[9px] text-gray-500">${o.date}</td>
-            <td class="p-4">
-                <span class="font-bold">${o.customer}</span>
-                ${o.info ? `<span class="info-text">"${o.info}"</span>` : ''}
-            </td>
-            <td class="p-4">${o.items ? o.items.map(i => `<div class="mb-1"><b>${i.qty}x ${i.name}</b> <span class="stock-log">(${i.log || ''})</span></div>`).join("") : ""}</td>
-            <td class="p-4 text-green-400 font-bold">${o.total ? o.total.toFixed(2) + '€' : '-'}</td>
+            <td class="p-4"><span class="font-bold">${o.customer}</span>${o.info ? `<span class="info-text">"${o.info}"</span>` : ''}</td>
+            <td class="p-4 text-[10px]">${o.items ? o.items.map(i => `<div>${i.qty}x ${i.name} <span class="stock-log">(${i.log})</span></div>`).join("") : ""}</td>
+            <td class="p-4 whitespace-nowrap">${o.hasPromo ? `<span class="promo-badge">PROMO</span>` : ''}<span class="text-green-400 font-bold">${o.total ? o.total.toFixed(2) + '€' : '-'}</span></td>
             <td class="p-4"><button onclick="if(confirm('Löschen?')) db.ref('orders/${k}').remove()">🗑️</button></td></tr>`;
       }).join('');
     }
 
+    // CODE ADMIN
+    async function saveNewCode() {
+      const n = document.getElementById("newCodeName").value.trim().toUpperCase();
+      const v = parseFloat(document.getElementById("newCodeValue").value);
+      const t = document.getElementById("newCodeType").value;
+      const e = document.getElementById("newCodeExpiry").value;
+      const created = new Date().toLocaleDateString('de-DE');
+      if(n && v) { 
+          await db.ref('codes').push({ code: n, value: v, type: t, expiry: e, created: created }); 
+          document.getElementById("newCodeName").value=""; 
+      }
+    }
+
+    function renderCodes() {
+      document.getElementById("codeList").innerHTML = globalCodes.map(c => `
+        <div class="bg-gray-800 p-2 rounded border border-gray-700 text-[10px] mb-1">
+          <div class="flex justify-between items-center mb-1">
+            <span class="font-bold text-indigo-400">${c.code}</span>
+            <button onclick="db.ref('codes/${c.id}').remove()" class="text-red-500">✕</button>
+          </div>
+          <div class="flex justify-between text-gray-400">
+            <span>${c.type === 'percent' ? c.value+'%' : c.value+'€'} (${c.type === 'once' ? 'Einmal' : 'Dauer'})</span>
+            <span>Bis: ${c.expiry || '∞'}</span>
+          </div>
+          <div class="text-[8px] text-gray-600 mt-1">Erstellt: ${c.created || '?'}</div>
+        </div>`).join("");
+    }
+
+    // HILFSFUNKTIONEN (wie gehabt)
+    function renderCart() {
+      const subtotal = cart.reduce((s, i) => s + (i.price * i.qty), 0);
+      let total = subtotal * activeMultiplier - flatDiscount;
+      if(total < 0) total = 0;
+      document.getElementById("cartItems").innerHTML = cart.map(i => `<div class="flex justify-between"><span>${i.qty}x ${i.name}</span><span>${(i.price * i.qty).toFixed(2)} €</span></div>`).join("") || "Warenkorb leer";
+      document.getElementById("totalPrice").textContent = total.toFixed(2);
+      document.getElementById("timerDisplay").style.display = cart.length > 0 ? "block" : "none";
+    }
     function renderProducts() {
       const list = document.getElementById("productList"); if(!list) return; list.innerHTML = "";
       products.forEach(p => {
@@ -237,68 +298,22 @@
           <button onclick="addToCart('${p.id}')" class="bg-indigo-600 btn-plus rounded-xl font-bold flex items-center justify-center text-xl ${p.stock <= 0 ? 'opacity-20' : ''}" ${p.stock <= 0 ? 'disabled' : ''}>+</button></div>`;
       });
     }
-
-    function renderCart() {
-      const total = cart.reduce((s, i) => s + (i.price * i.qty), 0) * activeMultiplier;
-      document.getElementById("cartItems").innerHTML = cart.map(i => `<div class="flex justify-between"><span>${i.qty}x ${i.name}</span><span>${(i.price * i.qty).toFixed(2)} €</span></div>`).join("") || "Warenkorb leer";
-      document.getElementById("totalPrice").textContent = total.toFixed(2);
-      document.getElementById("timerDisplay").style.display = cart.length > 0 ? "block" : "none";
+    function renderInventory() {
+      const tbody = document.getElementById("inventoryTable"); if(!tbody) return;
+      tbody.innerHTML = products.map(p => `<tr class="border-b border-gray-800/30"><td class="p-2"><input onchange="db.ref('products/${p.id}').update({name: this.value})" value="${p.name}" class="bg-transparent font-bold outline-none w-24"></td><td class="p-2"><input type="number" onchange="db.ref('products/${p.id}').update({stock: parseInt(this.value)})" value="${p.stock}" class="admin-val-input text-indigo-400"></td><td class="p-2"><input type="number" step="0.01" onchange="db.ref('products/${p.id}').update({price: parseFloat(this.value)})" value="${p.price}" class="admin-val-input text-green-400"></td><td class="p-2"><input type="number" onchange="db.ref('products/${p.id}').update({sale: parseInt(this.value)})" value="${p.sale || 0}" class="admin-val-input text-red-400"></td><td class="p-2"><button onclick="if(confirm('Löschen?')) db.ref('products/${p.id}').remove()">✕</button></td></tr>`).join('');
     }
-
-    function clearCart() { 
-      cart.forEach(async i => { 
-        const p = products.find(x => x.id === i.id); 
-        if(p) await db.ref('products/'+i.id).update({stock: p.stock + i.qty}); 
-      }); 
-      cart = []; stopTimer(); renderCart(); 
-    }
-
     function startTimer() { if(timerInterval) return; timeLeft = 900; timerInterval = setInterval(() => { timeLeft--; let m = Math.floor(timeLeft/60); let s = timeLeft%60; document.getElementById("timerDisplay").innerText = `${m}:${s<10?'0':''}${s}`; if(timeLeft<=0){clearCart();alert("Zeit abgelaufen!");}}, 1000); }
     function stopTimer() { clearInterval(timerInterval); timerInterval = null; }
+    function clearCart() { cart.forEach(async i => { const p = products.find(x => x.id === i.id); if(p) await db.ref('products/'+i.id).update({stock: p.stock + i.qty}); }); cart = []; stopTimer(); renderCart(); }
+    async function saveToFirebase() { const n = document.getElementById("m_name").value, p = parseFloat(document.getElementById("m_price").value) || 0, s = parseInt(document.getElementById("m_stock").value) || 0; if(n) { await db.ref('products').push({ name:n, price:p, stock:s, sale:0 }); openModal('managerModal'); } }
+    async function submitRestock() { const id = document.getElementById("restock_select").value; const qty = parseInt(document.getElementById("restock_qty").value); if(!id || isNaN(qty)) return; const p = products.find(x => x.id === id); const oldS = p.stock; const newS = p.stock + qty; await db.ref('products/' + id).update({ stock: newS }); await db.ref('orders').push({ customer: "📦 NACHSCHUB", isRestock: true, items: [{ name: p.name, qty: qty, log: `${oldS} ➔ ${newS}` }], date: new Date().toLocaleString('de-DE'), done: true }); document.getElementById("restock_qty").value = ""; }
+    function openAnalytics() { openModal('analyticsModal'); document.getElementById("restock_select").innerHTML = products.map(p => `<option value="${p.id}">${p.name} (${p.stock})</option>`).join(""); }
+    function updateAnalyticsDisplay() { let v = 0, s = 0; products.forEach(p => { v += (p.price * p.stock); s += p.stock; }); if(document.getElementById("stat_totalValue")) document.getElementById("stat_totalValue").innerText = v.toFixed(2) + "€"; if(document.getElementById("stat_totalStock")) document.getElementById("stat_totalStock").innerText = s; }
     function triggerAdminMenu() { if (prompt("PW:") === "030199") openModal('managerModal'); }
     function openModal(id) { closeModals(); document.getElementById(id).classList.replace("modal-hidden", "modal-visible"); }
     function closeModals() { document.querySelectorAll('.fixed').forEach(m => m.classList.replace("modal-visible", "modal-hidden")); }
     function checkForm() { const n = document.getElementById("c_name").value.trim(); const b = document.getElementById("finalOrderBtn"); b.disabled = n.length <= 1; b.classList.toggle("opacity-30", n.length <= 1); }
     function openCheckout() { if (cart.length) openModal('checkoutModal'); }
-
-    // ADMIN FUNKTIONEN
-    function renderInventory() {
-      const tbody = document.getElementById("inventoryTable"); if(!tbody) return;
-      tbody.innerHTML = products.map(p => `<tr class="border-b border-gray-800/30"><td class="p-2"><input onchange="db.ref('products/${p.id}').update({name: this.value})" value="${p.name}" class="bg-transparent font-bold outline-none w-24"></td><td class="p-2"><input type="number" onchange="db.ref('products/${p.id}').update({stock: parseInt(this.value)})" value="${p.stock}" class="admin-val-input text-indigo-400"></td><td class="p-2"><input type="number" step="0.01" onchange="db.ref('products/${p.id}').update({price: parseFloat(this.value)})" value="${p.price}" class="admin-val-input text-green-400"></td><td class="p-2"><input type="number" onchange="db.ref('products/${p.id}').update({sale: parseInt(this.value)})" value="${p.sale || 0}" class="admin-val-input text-red-400"></td><td class="p-2"><button onclick="if(confirm('Löschen?')) db.ref('products/${p.id}').remove()">✕</button></td></tr>`).join('');
-    }
-    async function saveToFirebase() {
-      const n = document.getElementById("m_name").value, p = parseFloat(document.getElementById("m_price").value) || 0, s = parseInt(document.getElementById("m_stock").value) || 0;
-      if(n) { await db.ref('products').push({ name:n, price:p, stock:s, sale:0 }); openModal('managerModal'); }
-    }
-    function openAnalytics() { openModal('analyticsModal'); document.getElementById("restock_select").innerHTML = products.map(p => `<option value="${p.id}">${p.name} (${p.stock})</option>`).join(""); }
-    function updateAnalyticsDisplay() { let v = 0, s = 0; products.forEach(p => { v += (p.price * p.stock); s += p.stock; }); if(document.getElementById("stat_totalValue")) document.getElementById("stat_totalValue").innerText = v.toFixed(2) + "€"; if(document.getElementById("stat_totalStock")) document.getElementById("stat_totalStock").innerText = s; }
-    
-    async function submitRestock() {
-        const id = document.getElementById("restock_select").value;
-        const qty = parseInt(document.getElementById("restock_qty").value);
-        if(!id || isNaN(qty)) return;
-        const p = products.find(x => x.id === id);
-        const oldS = p.stock;
-        const newS = p.stock + qty;
-        await db.ref('products/' + id).update({ stock: newS });
-        await db.ref('orders').push({ customer: "📦 NACHSCHUB", isRestock: true, items: [{ name: p.name, qty: qty, log: `${oldS} ➔ ${newS}` }], date: new Date().toLocaleString('de-DE'), done: true });
-        document.getElementById("restock_qty").value = "";
-    }
-    
-    function applyGlobalCode() {
-      const val = document.getElementById("discountInput").value.trim().toUpperCase();
-      const c = globalCodes.find(x => x.code === val);
-      activeMultiplier = c ? (1 - c.value/100) : 1; 
-      renderCart(); alert(c ? "Code aktiv!" : "Ungültig");
-    }
-    async function saveNewCode() {
-      const n = document.getElementById("newCodeName").value.trim().toUpperCase();
-      const v = parseInt(document.getElementById("newCodeValue").value);
-      if(n && v) { await db.ref('codes').push({ code: n, value: v }); document.getElementById("newCodeName").value=""; }
-    }
-    function renderCodes() {
-      document.getElementById("codeList").innerHTML = globalCodes.map(c => `<div class="flex justify-between bg-gray-800 p-2 rounded mb-1 text-xs"><span>${c.code} (${c.value}%)</span><button onclick="db.ref('codes/${c.id}').remove()">✕</button></div>`).join("");
-    }
   </script>
 </body>
 </html>
