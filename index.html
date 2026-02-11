@@ -71,11 +71,10 @@
 
   <div id="analyticsModal" class="fixed inset-0 bg-black/95 modal-hidden z-[120] flex items-center justify-center p-4">
     <div class="bg-gray-900 border border-gray-700 p-6 rounded-3xl w-full max-w-lg shadow-2xl max-h-[90vh] overflow-y-auto">
-      <h3 class="text-xl font-black mb-6 text-blue-400 uppercase text-center">Lagerverwaltung & Analyse</h3>
-      
+      <h3 class="text-xl font-black mb-6 text-blue-400 uppercase text-center">Lagerverwaltung</h3>
       <div class="grid grid-cols-2 gap-4 mb-8">
         <div class="bg-gray-800 p-4 rounded-2xl border border-gray-700">
-          <div class="text-[10px] text-gray-400 uppercase">Lagerwert (EK/Basis)</div>
+          <div class="text-[10px] text-gray-400 uppercase">Lagerwert (Basis)</div>
           <div id="stat_totalValue" class="text-xl font-black text-white">0.00€</div>
         </div>
         <div class="bg-gray-800 p-4 rounded-2xl border border-gray-700">
@@ -83,19 +82,29 @@
           <div id="stat_totalStock" class="text-xl font-black text-white">0</div>
         </div>
       </div>
-
       <div class="bg-black/30 p-4 rounded-2xl border border-blue-900/30 mb-6">
         <h4 class="text-xs font-bold text-blue-300 uppercase mb-3">Wareneingang buchen</h4>
         <div class="space-y-3">
-          <select id="restock_select" class="w-full bg-gray-800 p-3 rounded-xl border border-gray-700 text-sm outline-none text-white"></select>
+          <select id="restock_select" class="w-full bg-gray-800 p-3 rounded-xl border border-gray-700 text-sm text-white outline-none"></select>
           <div class="flex gap-2">
-            <input id="restock_qty" type="number" placeholder="Menge (z.B. 10)" class="flex-1 bg-gray-800 p-3 rounded-xl border border-gray-700 outline-none text-white">
+            <input id="restock_qty" type="number" placeholder="Menge" class="flex-1 bg-gray-800 p-3 rounded-xl border border-gray-700 text-white outline-none">
             <button onclick="submitRestock()" class="bg-blue-600 px-6 rounded-xl font-bold text-sm">BUCHEN</button>
           </div>
         </div>
       </div>
+      <button onclick="openModal('managerModal')" class="w-full text-gray-500 text-xs font-bold uppercase py-2">Zurück</button>
+    </div>
+  </div>
 
-      <button onclick="openModal('managerModal')" class="w-full text-gray-500 text-xs font-bold uppercase py-2">Zurück zum Manager</button>
+  <div id="checkoutModal" class="fixed inset-0 bg-black/90 flex items-center justify-center p-4 modal-hidden z-[100]">
+    <div class="bg-gray-900 border border-gray-700 p-6 rounded-2xl w-full max-w-sm text-center">
+      <h3 class="text-xl font-bold mb-4 text-green-400 uppercase font-black">Bestätigen</h3>
+      <div class="space-y-4">
+        <input id="c_name" type="text" oninput="checkForm()" class="w-full bg-gray-800 border border-gray-700 p-4 rounded-2xl text-white outline-none" placeholder="Dein Name">
+        <input id="c_msg" type="text" class="w-full bg-gray-800 border border-gray-700 p-4 rounded-2xl text-white outline-none" placeholder="Info (Optional)">
+        <button id="finalOrderBtn" onclick="orderWhatsApp()" disabled class="w-full bg-green-600 p-4 rounded-2xl font-bold opacity-30 text-lg">ZUM WHATSAPP CHAT</button>
+        <button onclick="closeModals()" class="w-full text-gray-500 text-xs uppercase mt-2">Abbrechen</button>
+      </div>
     </div>
   </div>
 
@@ -125,7 +134,7 @@
         <div class="overflow-auto flex-1 bg-black/20 rounded-2xl border border-gray-800">
             <table class="w-full text-left text-[11px]">
                 <thead class="bg-gray-800 text-gray-400 uppercase text-[9px] tracking-widest sticky top-0">
-                    <tr><th class="p-4 w-12 text-center">✔</th><th class="p-4">Datum</th><th class="p-4">Kunde / Typ</th><th class="p-4">Details (Bestand)</th><th class="p-4">Info</th><th class="p-4">Summe</th><th class="p-4"></th></tr>
+                    <tr><th class="p-4 w-12 text-center">✔</th><th class="p-4">Datum</th><th class="p-4">Kunde / Typ</th><th class="p-4">Details</th><th class="p-4">Info</th><th class="p-4">Summe</th><th class="p-4"></th></tr>
                 </thead>
                 <tbody id="orderTableBody"></tbody>
             </table>
@@ -133,26 +142,14 @@
     </div>
   </div>
 
-  <div id="checkoutModal" class="fixed inset-0 bg-black/90 flex items-center justify-center p-4 modal-hidden z-[100]">
-    <div class="bg-gray-900 border border-gray-700 p-6 rounded-2xl w-full max-w-sm text-center">
-      <h3 class="text-xl font-bold mb-4 text-green-400 uppercase font-black">Bestätigen</h3>
-      <div class="space-y-4">
-        <input id="c_name" type="text" oninput="checkForm()" class="w-full bg-gray-800 border border-gray-700 p-4 rounded-2xl text-white outline-none" placeholder="Dein Name">
-        <input id="c_msg" type="text" class="w-full bg-gray-800 border border-gray-700 p-4 rounded-2xl text-white outline-none" placeholder="Info (Optional)">
-        <button id="finalOrderBtn" onclick="orderWhatsApp()" disabled class="w-full bg-green-600 p-4 rounded-2xl font-bold opacity-30 text-lg">ZUM WHATSAPP CHAT</button>
-        <button onclick="closeModals()" class="w-full text-gray-500 text-xs uppercase mt-2">Abbrechen</button>
-      </div>
-    </div>
-  </div>
-
   <div id="codeModal" class="fixed inset-0 bg-black/90 flex items-center justify-center p-4 modal-hidden z-[80]">
     <div class="bg-gray-900 border border-gray-700 p-6 rounded-2xl w-full max-w-sm">
-      <h3 class="text-xl font-bold mb-4 text-indigo-400 uppercase">Rabatt-Codes</h3>
-      <div id="codeList" class="space-y-2 mb-4 max-h-40 overflow-y-auto text-white"></div>
+      <h3 class="text-xl font-bold mb-4 text-indigo-400 uppercase text-center">Rabatt-Codes</h3>
+      <div id="codeList" class="space-y-2 mb-4 max-h-40 overflow-y-auto"></div>
       <div class="space-y-2 border-t border-gray-800 pt-4">
-        <input id="newCodeName" placeholder="CODE NAME" class="w-full bg-gray-800 p-2 rounded-lg text-sm border border-gray-700 text-white uppercase">
-        <input id="newCodeValue" type="number" placeholder="Wert in %" class="w-full bg-gray-800 p-2 rounded-lg text-sm border border-gray-700 text-white">
-        <button onclick="saveNewCode()" class="w-full bg-indigo-600 p-2 rounded-lg font-bold">CODE SPEICHERN</button>
+        <input id="newCodeName" placeholder="CODE NAME" class="w-full bg-gray-800 p-2 rounded-lg text-sm border border-gray-700 text-white uppercase outline-none">
+        <input id="newCodeValue" type="number" placeholder="Wert in %" class="w-full bg-gray-800 p-2 rounded-lg text-sm border border-gray-700 text-white outline-none">
+        <button onclick="saveNewCode()" class="w-full bg-indigo-600 p-2 rounded-lg font-bold">SPEICHERN</button>
       </div>
       <button onclick="openModal('managerModal')" class="w-full mt-4 text-gray-500 text-xs font-bold uppercase">Zurück</button>
     </div>
@@ -216,65 +213,57 @@
         </tr>`).join('');
     }
 
+    async function orderWhatsApp() {
+      const name = document.getElementById("c_name").value.trim();
+      const msgUser = document.getElementById("c_msg").value.trim();
+      const total = parseFloat(document.getElementById("totalPrice").textContent);
+      
+      const orderDataItems = [];
+      let waText = `Bestellung von *${name}*:%0A%0A`;
+
+      for (const item of cart) {
+          const p = products.find(x => x.id === item.id);
+          if (p) {
+              const oldS = p.stock;
+              const newS = Math.max(0, p.stock - item.qty);
+              orderDataItems.push({ name: item.name, qty: item.qty, before: oldS, after: newS === 0 ? "Ausverkauft" : newS });
+              waText += `• ${item.qty}x ${item.name}%0A`;
+              await db.ref('products/' + item.id).update({ stock: newS });
+          }
+      }
+
+      waText += `%0AGesamt: *${total.toFixed(2)}€*`;
+      if(msgUser) waText += `%0A%0AInfo: _${msgUser}_`;
+
+      await db.ref('orders').push({ customer: name, time: msgUser, items: orderDataItems, total: total, date: new Date().toLocaleString('de-DE'), done: false });
+      
+      window.open(`https://wa.me/?text=${waText}`, "_blank");
+      cart = []; closeModals(); renderCart(); renderProducts();
+    }
+
     function openAnalytics() {
       openModal('analyticsModal');
       const sel = document.getElementById("restock_select");
-      sel.innerHTML = products.map(p => `<option value="${p.id}">${p.name} (Aktuell: ${p.stock})</option>`).join("");
+      sel.innerHTML = products.map(p => `<option value="${p.id}">${p.name} (${p.stock})</option>`).join("");
     }
 
     function updateAnalyticsDisplay() {
         let totalVal = 0; let totalStk = 0;
-        products.forEach(p => { 
-            totalVal += (p.price * p.stock); 
-            totalStk += p.stock; 
-        });
-        const vEl = document.getElementById("stat_totalValue");
-        const sEl = document.getElementById("stat_totalStock");
-        if(vEl) vEl.innerText = totalVal.toFixed(2) + "€";
-        if(sEl) sEl.innerText = totalStk;
+        products.forEach(p => { totalVal += (p.price * p.stock); totalStk += p.stock; });
+        if(document.getElementById("stat_totalValue")) document.getElementById("stat_totalValue").innerText = totalVal.toFixed(2) + "€";
+        if(document.getElementById("stat_totalStock")) document.getElementById("stat_totalStock").innerText = totalStk;
     }
 
     async function submitRestock() {
         const id = document.getElementById("restock_select").value;
         const qty = parseInt(document.getElementById("restock_qty").value);
         if(!id || isNaN(qty)) return;
-
         const p = products.find(x => x.id === id);
-        const oldS = p.stock;
-        const newS = oldS + qty;
-
-        // Lager updaten
+        const oldS = p.stock; const newS = oldS + qty;
         await db.ref('products/' + id).update({ stock: newS });
-
-        // In Packliste/Journal schreiben
-        await db.ref('orders').push({
-            customer: "📦 LAGER AUFFÜLLUNG",
-            isRestock: true,
-            items: [{ name: p.name, qty: qty, before: oldS, after: newS }],
-            date: new Date().toLocaleString('de-DE'),
-            done: true
-        });
-
+        await db.ref('orders').push({ customer: "📦 NACHSCHUB", isRestock: true, items: [{ name: p.name, qty: qty, before: oldS, after: newS }], date: new Date().toLocaleString('de-DE'), done: true });
         document.getElementById("restock_qty").value = "";
-        alert("Bestand aktualisiert!");
-    }
-
-    async function orderWhatsApp() {
-      const name = document.getElementById("c_name").value.trim();
-      const msgUser = document.getElementById("c_msg").value.trim();
-      const total = parseFloat(document.getElementById("totalPrice").textContent);
-      const orderItems = [];
-      for (const item of cart) {
-          const p = products.find(x => x.id === item.id);
-          if (p) {
-              const oldS = p.stock; const newS = Math.max(0, p.stock - item.qty);
-              orderItems.push({ name: item.name, qty: item.qty, before: oldS, after: newS === 0 ? "Ausverkauft" : newS });
-              await db.ref('products/' + item.id).update({ stock: newS });
-          }
-      }
-      await db.ref('orders').push({ customer: name, time: msgUser, items: orderItems, total: total, date: new Date().toLocaleString('de-DE'), done: false });
-      window.open(`https://wa.me/?text=Bestellung von *${name}*`, "_blank");
-      cart = []; closeModals(); renderCart();
+        alert("Bestand gebucht!");
     }
 
     function updateOrderTable(orders) {
@@ -298,7 +287,7 @@
       }).join('');
     }
 
-    // Hilfsfunktionen
+    // Standard Funktionen
     function addToCart(id) {
       const p = products.find(x => x.id === id);
       const item = cart.find(i => i.id === id);
@@ -314,33 +303,19 @@
       document.getElementById("totalPrice").textContent = total.toFixed(2);
     }
     function clearCart() { cart = []; renderProducts(); renderCart(); }
-    function checkForm() { 
-      const name = document.getElementById("c_name").value.trim();
-      const btn = document.getElementById("finalOrderBtn");
-      btn.disabled = name.length <= 1; btn.classList.toggle("opacity-30", name.length <= 1);
-    }
+    function checkForm() { const n = document.getElementById("c_name").value.trim(); const b = document.getElementById("finalOrderBtn"); b.disabled = n.length <= 1; b.classList.toggle("opacity-30", n.length <= 1); }
     function updateRow(id, field, value) { let val = (field === 'name' || field.startsWith('n_')) ? value : parseFloat(value); db.ref('products/' + id).update({ [field]: val }); }
     function toggleOrder(id, done) { db.ref('orders/' + id).update({ done }); }
     function deleteOrder(id) { if(confirm("Löschen?")) db.ref('orders/' + id).remove(); }
     function resetOrders() { if(confirm("ALLES LÖSCHEN?")) db.ref('orders').remove(); }
     function deleteProduct(id) { if(confirm("Löschen?")) db.ref('products/' + id).remove(); }
-    function triggerAdminMenu() { if (prompt("Passwort:") === "030199") openModal('managerModal'); }
+    function triggerAdminMenu() { if (prompt("PW:") === "030199") openModal('managerModal'); }
     async function saveToFirebase() {
-      const name = document.getElementById("m_name").value;
-      const price = parseFloat(document.getElementById("m_price").value) || 0;
-      const stock = parseInt(document.getElementById("m_stock").value) || 0;
-      const sale = parseInt(document.getElementById("m_sale").value) || 0;
-      if(name) { await db.ref('products').push({ name, price, stock, sale }); openModal('managerModal'); }
+      const n = document.getElementById("m_name").value; const p = parseFloat(document.getElementById("m_price").value) || 0; const s = parseInt(document.getElementById("m_stock").value) || 0; const r = parseInt(document.getElementById("m_sale").value) || 0;
+      if(n) { await db.ref('products').push({ name:n, price:p, stock:s, sale:r }); openModal('managerModal'); }
     }
-    function applyGlobalCode() {
-      const val = document.getElementById("discountInput").value.trim().toUpperCase();
-      const c = globalCodes.find(x => x.code === val);
-      activeMultiplier = c ? (1 - c.value/100) : 1; renderCart();
-    }
-    async function saveNewCode() { 
-        const code = document.getElementById("newCodeName").value.trim().toUpperCase(); const value = parseInt(document.getElementById("newCodeValue").value); 
-        if (code && value) { await db.ref('codes').push({ code, value }); document.getElementById("newCodeName").value=""; } 
-    }
+    function applyGlobalCode() { const v = document.getElementById("discountInput").value.trim().toUpperCase(); const c = globalCodes.find(x => x.code === v); activeMultiplier = c ? (1 - c.value/100) : 1; renderCart(); }
+    async function saveNewCode() { const c = document.getElementById("newCodeName").value.trim().toUpperCase(); const v = parseInt(document.getElementById("newCodeValue").value); if (c && v) { await db.ref('codes').push({ code:c, value:v }); document.getElementById("newCodeName").value=""; } }
     function renderCodes() { document.getElementById("codeList").innerHTML = globalCodes.map(c => `<div class="flex justify-between items-center bg-gray-800 p-2 rounded-lg text-sm mb-1"><span><b>${c.code}</b></span><button onclick="db.ref('codes/${c.id}').remove()">X</button></div>`).join(""); }
     function openModal(id) { closeModals(); document.getElementById(id).classList.replace("modal-hidden", "modal-visible"); }
     function closeModals() { document.querySelectorAll('.fixed').forEach(m => m.classList.replace("modal-visible", "modal-hidden")); }
