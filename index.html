@@ -92,8 +92,46 @@
     </div>
   </div>
 
+  <div id="adminModal" class="fixed inset-0 bg-black/90 flex items-center justify-center p-4 modal-hidden z-[130]">
+    <div class="bg-gray-900 border border-gray-700 p-6 rounded-3xl w-full max-w-sm">
+      <h3 class="text-xl font-bold mb-4 text-indigo-400 text-center uppercase">Neu</h3>
+      <input id="m_name" placeholder="Name" class="w-full bg-gray-800 p-4 rounded-xl border border-gray-700 text-white mb-3 outline-none">
+      <input id="m_price" type="number" step="0.01" placeholder="Preis €" class="w-full bg-gray-800 p-4 rounded-xl border border-gray-700 text-white mb-3 outline-none">
+      <input id="m_stock" type="number" placeholder="Bestand" class="w-full bg-gray-800 p-4 rounded-xl border border-gray-700 text-white mb-3 outline-none">
+      <button onclick="saveToFirebase()" class="w-full bg-indigo-600 p-4 rounded-xl font-bold">SPEICHERN</button>
+      <button onclick="openModal('managerModal')" class="w-full text-gray-500 text-xs font-bold mt-2">Abbrechen</button>
+    </div>
+  </div>
+
+  <div id="codeModal" class="fixed inset-0 bg-black/90 flex items-center justify-center p-4 modal-hidden z-[80]">
+    <div class="bg-gray-900 border border-gray-700 p-6 rounded-2xl w-full max-w-sm">
+      <h3 class="text-xl font-bold mb-4 text-indigo-400 text-center uppercase">Codes</h3>
+      <div id="codeList" class="space-y-2 mb-4 max-h-40 overflow-y-auto"></div>
+      <div class="space-y-2">
+        <input id="newCodeName" placeholder="CODE" class="w-full bg-gray-800 p-2 rounded-lg text-sm border border-gray-700 text-white uppercase outline-none">
+        <input id="newCodeValue" type="number" placeholder="%" class="w-full bg-gray-800 p-2 rounded-lg text-sm border border-gray-700 text-white outline-none">
+        <button onclick="saveNewCode()" class="w-full bg-indigo-600 p-2 rounded-lg font-bold">SPEICHERN</button>
+      </div>
+      <button onclick="openModal('managerModal')" class="w-full mt-4 text-gray-500 text-xs font-bold uppercase">Zurück</button>
+    </div>
+  </div>
+
+  <div id="analyticsModal" class="fixed inset-0 bg-black/95 modal-hidden z-[120] flex items-center justify-center p-4">
+    <div class="bg-gray-900 border border-gray-700 p-6 rounded-3xl w-full max-w-lg shadow-2xl">
+      <h3 class="text-xl font-black mb-6 text-blue-400 uppercase text-center">Lagerverwaltung</h3>
+      <div class="grid grid-cols-2 gap-4 mb-8">
+        <div class="bg-gray-800 p-4 rounded-2xl border border-gray-700 text-center"><div class="text-[10px] text-gray-400 uppercase">Lagerwert</div><div id="stat_totalValue" class="text-xl font-black text-white">0.00€</div></div>
+        <div class="bg-gray-800 p-4 rounded-2xl border border-gray-700 text-center"><div class="text-[10px] text-gray-400 uppercase">Artikel</div><div id="stat_totalStock" class="text-xl font-black text-white">0</div></div>
+      </div>
+      <div class="bg-black/30 p-4 rounded-2xl border border-blue-900/30 mb-6">
+        <select id="restock_select" class="w-full bg-gray-800 p-3 rounded-xl border border-gray-700 text-white mb-3"></select>
+        <div class="flex gap-2"><input id="restock_qty" type="number" placeholder="Menge" class="flex-1 bg-gray-800 p-3 rounded-xl border border-gray-700 text-white"><button onclick="submitRestock()" class="bg-blue-600 px-6 rounded-xl font-bold">BUCHEN</button></div>
+      </div>
+      <button onclick="openModal('managerModal')" class="w-full text-gray-500 text-xs font-bold uppercase py-2">Zurück</button>
+    </div>
+  </div>
+
   <script>
-    // ... Firebase Init (Config bleibt wie vorher) ...
     const firebaseConfig = {
       apiKey: "AIzaSyBCC95uMeJcgxuHLLB-w9nuq8lM-27iwIU",
       authDomain: "gefrierschrank-marktplatz.firebaseapp.com",
@@ -112,7 +150,12 @@
     // LISTENERS & LOGIK
     db.ref('products').on('value', s => { 
         const data = s.val(); products = data ? Object.keys(data).map(k => ({id:k, ...data[k]})) : []; 
-        renderProducts(); renderInventory();
+        renderProducts(); renderInventory(); updateAnalyticsDisplay();
+    });
+    db.ref('codes').on('value', s => { 
+      const data = s.val();
+      globalCodes = data ? Object.keys(data).map(k => ({id:k, ...data[k]})) : []; 
+      renderCodes();
     });
     db.ref('orders').on('value', s => { updateOrderTable(s.val()); });
 
@@ -133,16 +176,15 @@
 
     async function orderWhatsApp() {
       const name = document.getElementById("c_name").value.trim();
-      const info = document.getElementById("c_msg").value.trim(); // Die Info-Eingabe
+      const info = document.getElementById("c_msg").value.trim();
       const total = parseFloat(document.getElementById("totalPrice").textContent);
       
       const orderItems = cart.map(i => {
-          const pNow = products.find(x => x.id === id);
-          const log = `${i.initialStock} ➔ ${pNow ? pNow.stock : '?'}`;
+          const pNow = products.find(x => x.id === i.id);
+          const log = `${i.initialStock} ➔ ${pNow ? (pNow.stock <= 0 ? 'Ausverkauft' : pNow.stock) : '?'}`;
           return { name: i.name, qty: i.qty, log: log };
       });
 
-      // In Datenbank speichern (inklusive info)
       await db.ref('orders').push({ 
           customer: name, 
           info: info, 
@@ -152,15 +194,16 @@
           done: false 
       });
 
-      // WhatsApp Text bauen
       let waText = `Bestellung von *${name}*:%0A%0A`;
       cart.forEach(i => { waText += `• ${i.qty}x ${i.name}%0A`; });
       waText += `%0AGesamt: *${total.toFixed(2)}€*`;
-      if(info) waText += `%0A%0A*Zusatz-Info:* ${info}`; // Info in WhatsApp hinzufügen
+      if(info) waText += `%0A%0A*Zusatz-Info:* ${info}`;
 
       window.open(`https://wa.me/?text=${waText}`, "_blank");
       
       cart = []; stopTimer(); renderCart(); closeModals();
+      document.getElementById("c_name").value = "";
+      document.getElementById("c_msg").value = "";
     }
 
     function updateOrderTable(orders) {
@@ -170,7 +213,7 @@
       document.getElementById("openOrderBadge").innerText = keys.filter(k => !orders[k].done).length;
       tbody.innerHTML = keys.map(k => {
         const o = orders[k];
-        return `<tr class="${o.done ? 'opacity-30' : ''} border-b border-gray-800/20">
+        return `<tr class="${o.done ? 'opacity-30' : ''} border-b border-gray-800/20 ${o.isRestock ? 'restock-entry' : ''}">
             <td class="p-4"><input type="checkbox" ${o.done ? 'checked' : ''} onchange="db.ref('orders/${k}').update({done: this.checked})"></td>
             <td class="p-4 text-[9px] text-gray-500">${o.date}</td>
             <td class="p-4">
@@ -183,7 +226,6 @@
       }).join('');
     }
 
-    // Hilfsfunktionen (wie gehabt)
     function renderProducts() {
       const list = document.getElementById("productList"); if(!list) return; list.innerHTML = "";
       products.forEach(p => {
@@ -195,13 +237,22 @@
           <button onclick="addToCart('${p.id}')" class="bg-indigo-600 btn-plus rounded-xl font-bold flex items-center justify-center text-xl ${p.stock <= 0 ? 'opacity-20' : ''}" ${p.stock <= 0 ? 'disabled' : ''}>+</button></div>`;
       });
     }
+
     function renderCart() {
       const total = cart.reduce((s, i) => s + (i.price * i.qty), 0) * activeMultiplier;
       document.getElementById("cartItems").innerHTML = cart.map(i => `<div class="flex justify-between"><span>${i.qty}x ${i.name}</span><span>${(i.price * i.qty).toFixed(2)} €</span></div>`).join("") || "Warenkorb leer";
       document.getElementById("totalPrice").textContent = total.toFixed(2);
       document.getElementById("timerDisplay").style.display = cart.length > 0 ? "block" : "none";
     }
-    function clearCart() { cart.forEach(async i => { const p = products.find(x => x.id === i.id); if(p) await db.ref('products/'+i.id).update({stock: p.stock + i.qty}); }); cart = []; stopTimer(); renderCart(); }
+
+    function clearCart() { 
+      cart.forEach(async i => { 
+        const p = products.find(x => x.id === i.id); 
+        if(p) await db.ref('products/'+i.id).update({stock: p.stock + i.qty}); 
+      }); 
+      cart = []; stopTimer(); renderCart(); 
+    }
+
     function startTimer() { if(timerInterval) return; timeLeft = 900; timerInterval = setInterval(() => { timeLeft--; let m = Math.floor(timeLeft/60); let s = timeLeft%60; document.getElementById("timerDisplay").innerText = `${m}:${s<10?'0':''}${s}`; if(timeLeft<=0){clearCart();alert("Zeit abgelaufen!");}}, 1000); }
     function stopTimer() { clearInterval(timerInterval); timerInterval = null; }
     function triggerAdminMenu() { if (prompt("PW:") === "030199") openModal('managerModal'); }
@@ -209,7 +260,45 @@
     function closeModals() { document.querySelectorAll('.fixed').forEach(m => m.classList.replace("modal-visible", "modal-hidden")); }
     function checkForm() { const n = document.getElementById("c_name").value.trim(); const b = document.getElementById("finalOrderBtn"); b.disabled = n.length <= 1; b.classList.toggle("opacity-30", n.length <= 1); }
     function openCheckout() { if (cart.length) openModal('checkoutModal'); }
-    // ... [Rest der Admin-Funktionen Inventory/Analytics/Codes wie vorher] ...
+
+    // ADMIN FUNKTIONEN
+    function renderInventory() {
+      const tbody = document.getElementById("inventoryTable"); if(!tbody) return;
+      tbody.innerHTML = products.map(p => `<tr class="border-b border-gray-800/30"><td class="p-2"><input onchange="db.ref('products/${p.id}').update({name: this.value})" value="${p.name}" class="bg-transparent font-bold outline-none w-24"></td><td class="p-2"><input type="number" onchange="db.ref('products/${p.id}').update({stock: parseInt(this.value)})" value="${p.stock}" class="admin-val-input text-indigo-400"></td><td class="p-2"><input type="number" step="0.01" onchange="db.ref('products/${p.id}').update({price: parseFloat(this.value)})" value="${p.price}" class="admin-val-input text-green-400"></td><td class="p-2"><input type="number" onchange="db.ref('products/${p.id}').update({sale: parseInt(this.value)})" value="${p.sale || 0}" class="admin-val-input text-red-400"></td><td class="p-2"><button onclick="if(confirm('Löschen?')) db.ref('products/${p.id}').remove()">✕</button></td></tr>`).join('');
+    }
+    async function saveToFirebase() {
+      const n = document.getElementById("m_name").value, p = parseFloat(document.getElementById("m_price").value) || 0, s = parseInt(document.getElementById("m_stock").value) || 0;
+      if(n) { await db.ref('products').push({ name:n, price:p, stock:s, sale:0 }); openModal('managerModal'); }
+    }
+    function openAnalytics() { openModal('analyticsModal'); document.getElementById("restock_select").innerHTML = products.map(p => `<option value="${p.id}">${p.name} (${p.stock})</option>`).join(""); }
+    function updateAnalyticsDisplay() { let v = 0, s = 0; products.forEach(p => { v += (p.price * p.stock); s += p.stock; }); if(document.getElementById("stat_totalValue")) document.getElementById("stat_totalValue").innerText = v.toFixed(2) + "€"; if(document.getElementById("stat_totalStock")) document.getElementById("stat_totalStock").innerText = s; }
+    
+    async function submitRestock() {
+        const id = document.getElementById("restock_select").value;
+        const qty = parseInt(document.getElementById("restock_qty").value);
+        if(!id || isNaN(qty)) return;
+        const p = products.find(x => x.id === id);
+        const oldS = p.stock;
+        const newS = p.stock + qty;
+        await db.ref('products/' + id).update({ stock: newS });
+        await db.ref('orders').push({ customer: "📦 NACHSCHUB", isRestock: true, items: [{ name: p.name, qty: qty, log: `${oldS} ➔ ${newS}` }], date: new Date().toLocaleString('de-DE'), done: true });
+        document.getElementById("restock_qty").value = "";
+    }
+    
+    function applyGlobalCode() {
+      const val = document.getElementById("discountInput").value.trim().toUpperCase();
+      const c = globalCodes.find(x => x.code === val);
+      activeMultiplier = c ? (1 - c.value/100) : 1; 
+      renderCart(); alert(c ? "Code aktiv!" : "Ungültig");
+    }
+    async function saveNewCode() {
+      const n = document.getElementById("newCodeName").value.trim().toUpperCase();
+      const v = parseInt(document.getElementById("newCodeValue").value);
+      if(n && v) { await db.ref('codes').push({ code: n, value: v }); document.getElementById("newCodeName").value=""; }
+    }
+    function renderCodes() {
+      document.getElementById("codeList").innerHTML = globalCodes.map(c => `<div class="flex justify-between bg-gray-800 p-2 rounded mb-1 text-xs"><span>${c.code} (${c.value}%)</span><button onclick="db.ref('codes/${c.id}').remove()">✕</button></div>`).join("");
+    }
   </script>
 </body>
 </html>
