@@ -65,7 +65,14 @@
   <div id="managerModal" class="fixed inset-0 bg-black/95 modal-hidden z-[70] flex flex-col p-2 overflow-hidden">
     <div class="max-w-5xl mx-auto w-full bg-gray-900 border border-gray-700 rounded-3xl p-6 flex flex-col h-full overflow-hidden shadow-2xl">
       <div class="flex justify-between items-center mb-6"><h2 class="text-xl font-bold text-indigo-400 uppercase">Inventar</h2><button onclick="closeModals()" class="text-gray-500 text-xs font-bold border border-gray-800 px-4 py-2 rounded-lg">CLOSE</button></div>
-      <div class="overflow-y-auto flex-1 mb-6 border border-gray-800 rounded-xl bg-black/20 p-2"><table class="w-full text-left text-xs"><thead class="text-gray-500 uppercase text-[10px] sticky top-0 bg-gray-900"><tr><th class="p-3">Produkt</th><th class="p-3">Lager</th><th class="p-3">Preis</th><th class="p-3">Sale</th><th class="p-3"></th></tr></thead><tbody id="inventoryTable"></tbody></table></div>
+      <div class="overflow-y-auto flex-1 mb-6 border border-gray-800 rounded-xl bg-black/20 p-2">
+        <table class="w-full text-left text-xs">
+          <thead class="text-gray-500 uppercase text-[10px] sticky top-0 bg-gray-900">
+            <tr><th class="p-3">Produkt</th><th class="p-3">Lager</th><th class="p-3">Preis</th><th class="p-3">Sale</th><th class="p-3"></th></tr>
+          </thead>
+          <tbody id="inventoryTable"></tbody>
+        </table>
+      </div>
       <div class="flex flex-wrap gap-2">
         <button onclick="openModal('adminModal')" class="bg-indigo-600 text-[10px] font-bold px-4 py-3 rounded-xl">+ NEU</button>
         <button onclick="openModal('codeModal')" class="bg-gray-800 text-[10px] font-bold px-4 py-3 rounded-xl">🎟️ CODES</button>
@@ -133,15 +140,12 @@
     let products = [], cart = [], globalCodes = [], activeMultiplier = 1, flatDiscount = 0, activeCodeName = null, activeCodeId = null;
     let timerInterval = null, timeLeft = 900;
 
-    // --- AUTOMATISCHES ZURÜCKBUCHEN BEI SEITEN-REFRESH ---
+    // --- AUTOMATISCHES ZURÜCKBUCHEN ---
     window.addEventListener('beforeunload', (event) => {
       if (cart.length > 0) {
         cart.forEach(i => {
           const p = products.find(x => x.id === i.id);
-          if (p) {
-            // Wir müssen hier einen "synchronen" Call simulieren, damit die DB das noch registriert
-            db.ref('products/' + i.id).update({ stock: p.stock + i.qty });
-          }
+          if (p) db.ref('products/' + i.id).update({ stock: p.stock + i.qty });
         });
       }
     });
@@ -160,6 +164,34 @@
     });
     db.ref('orders').on('value', s => { updateOrderTable(s.val()); });
 
+    // --- LOGIK FUNKTIONEN ---
+    function renderInventory() {
+      const tbody = document.getElementById("inventoryTable"); if(!tbody) return;
+      
+      // Verhindert das Neuzeichnen, während man in einem Input-Feld ist (Fokus-Check)
+      if (document.activeElement && document.activeElement.tagName === "INPUT" && document.activeElement.closest("#inventoryTable")) return;
+
+      tbody.innerHTML = products.map(p => `
+        <tr class="border-b border-gray-800/30">
+          <td class="p-2">
+            <input onblur="db.ref('products/${p.id}').update({name: this.value})" value="${p.name}" class="bg-transparent font-bold outline-none w-24">
+          </td>
+          <td class="p-2">
+            <input type="number" onblur="db.ref('products/${p.id}').update({stock: parseInt(this.value)})" value="${p.stock}" class="admin-val-input text-indigo-400">
+          </td>
+          <td class="p-2">
+            <input type="number" step="0.01" onblur="db.ref('products/${p.id}').update({price: parseFloat(this.value)})" value="${p.price}" class="admin-val-input text-green-400">
+          </td>
+          <td class="p-2">
+            <input type="number" onblur="db.ref('products/${p.id}').update({sale: parseInt(this.value)})" value="${p.sale || 0}" class="admin-val-input text-red-400">
+          </td>
+          <td class="p-2">
+            <button onclick="if(confirm('Produkt löschen?')) db.ref('products/${p.id}').remove()">✕</button>
+          </td>
+        </tr>`).join('');
+    }
+
+    // Warenkorb, Checkout & Order Logik (Inhalt bleibt identisch zu deinem Original)
     function applyGlobalCode() {
       const val = document.getElementById("discountInput").value.trim().toUpperCase();
       const c = globalCodes.find(x => x.code === val);
@@ -179,34 +211,22 @@
       const name = document.getElementById("c_name").value.trim();
       const info = document.getElementById("c_msg").value.trim();
       const total = parseFloat(document.getElementById("totalPrice").textContent);
-      
       const orderItems = cart.map(i => {
           const pNow = products.find(x => x.id === i.id);
           return { name: i.name, qty: i.qty, log: `${i.initialStock} ➔ ${pNow ? pNow.stock : '?'}` };
       });
-
       if(activeCodeId) {
           const currentCode = globalCodes.find(x => x.id === activeCodeId);
-          if(currentCode && currentCode.type === 'once') {
-              await db.ref('codes/' + activeCodeId).remove();
-          }
+          if(currentCode && currentCode.type === 'once') await db.ref('codes/' + activeCodeId).remove();
       }
-
-      await db.ref('orders').push({ 
-          customer: name, info, items: orderItems, total, date: new Date().toLocaleString('de-DE'), done: false, usedCode: activeCodeName 
-      });
-
+      await db.ref('orders').push({ customer: name, info, items: orderItems, total, date: new Date().toLocaleString('de-DE'), done: false, usedCode: activeCodeName });
       let waText = `Bestellung von *${name}*:%0A%0A`;
       cart.forEach(i => { waText += `• ${i.qty}x ${i.name}%0A`; });
       waText += `%0AGesamt: *${total.toFixed(2)}€*`;
       if(activeCodeName) waText += `%0A%0A*Rabatt-Code:* ${activeCodeName}`;
       if(info) waText += `%0A%0A*Info:* ${info}`;
-
-      // Cart leeren, damit beforeunload nicht zurückbucht
       cart = []; 
-
       window.open(`https://wa.me/?text=${waText}`, "_blank");
-      
       flatDiscount = 0; activeMultiplier = 1; activeCodeName = null; activeCodeId = null;
       stopTimer(); renderCart(); closeModals();
       document.getElementById("c_name").value = "";
@@ -236,10 +256,7 @@
       const v = parseFloat(document.getElementById("newCodeValue").value);
       const t = document.getElementById("newCodeType").value;
       const e = document.getElementById("newCodeExpiry").value;
-      if(n && v) { 
-          await db.ref('codes').push({ code: n, value: v, type: t, expiry: e, created: new Date().toLocaleDateString('de-DE') }); 
-          document.getElementById("newCodeName").value=""; 
-      }
+      if(n && v) { await db.ref('codes').push({ code: n, value: v, type: t, expiry: e, created: new Date().toLocaleDateString('de-DE') }); document.getElementById("newCodeName").value=""; }
     }
 
     function renderCodes() {
@@ -272,11 +289,6 @@
         const salePrice = p.sale > 0 ? p.price * (1 - p.sale/100) : p.price;
         list.innerHTML += `<div class="bg-gray-900 p-4 rounded-2xl flex justify-between items-center border border-gray-800 relative">${p.sale > 0 ? `<div class="absolute top-0 left-0 bg-red-600 text-[8px] font-bold px-1.5 py-0.5 rounded-br-lg z-10">-${p.sale}%</div>` : ''}<div><div class="font-bold text-gray-100">${p.name}</div><div class="text-sm mt-1"><span class="${p.sale > 0 ? 'text-red-400' : 'text-indigo-400'} font-bold">${salePrice.toFixed(2)}€</span><span class="text-gray-600 ml-2 text-xs">• ${p.stock <= 0 ? 'Ausverkauft' : p.stock + ' Stk.'}</span></div></div><button onclick="addToCart('${p.id}')" class="bg-indigo-600 btn-plus rounded-xl font-bold flex items-center justify-center text-xl ${p.stock <= 0 ? 'opacity-20' : ''}" ${p.stock <= 0 ? 'disabled' : ''}>+</button></div>`;
       });
-    }
-
-    function renderInventory() {
-      const tbody = document.getElementById("inventoryTable"); if(!tbody) return;
-      tbody.innerHTML = products.map(p => `<tr class="border-b border-gray-800/30"><td class="p-2"><input onchange="db.ref('products/${p.id}').update({name: this.value})" value="${p.name}" class="bg-transparent font-bold outline-none w-24"></td><td class="p-2"><input type="number" onchange="db.ref('products/${p.id}').update({stock: parseInt(this.value)})" value="${p.stock}" class="admin-val-input text-indigo-400"></td><td class="p-2"><input type="number" step="0.01" onchange="db.ref('products/${p.id}').update({price: parseFloat(this.value)})" value="${p.price}" class="admin-val-input text-green-400"></td><td class="p-2"><input type="number" onchange="db.ref('products/${p.id}').update({sale: parseInt(this.value)})" value="${p.sale || 0}" class="admin-val-input text-red-400"></td><td class="p-2"><button onclick="if(confirm('Löschen?')) db.ref('products/${p.id}').remove()">✕</button></td></tr>`).join('');
     }
 
     function clearCart() { 
